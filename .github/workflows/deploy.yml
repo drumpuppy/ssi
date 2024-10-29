@@ -14,7 +14,7 @@ jobs:
         uses: hashicorp/setup-terraform@v1
 
       - name: Terraform Init
-        working-directory: ./infrastructure
+        working-directory: ./infra
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
@@ -22,7 +22,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-        working-directory: ./infrastructure
+        working-directory: ./infra
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
