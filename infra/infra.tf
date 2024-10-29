@@ -10,12 +10,12 @@ terraform {
 variable "project_id" {
   type        = string
   description = "Your project ID."
-  default     = var.SCW_PROJECT_ID
 }
 
 provider "scaleway" {
-  region = "fr-par"
-  zone   = "fr-par-1"
+  project_id = var.project_id
+  region     = "fr-par"
+  zone       = "fr-par-1"
 }
 
 # Create Private Network
