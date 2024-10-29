@@ -32,4 +32,4 @@ jobs:
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-        run: terraform apply -var="project_id=${{ secrets.SCW_PROJECT_ID }}" -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan
