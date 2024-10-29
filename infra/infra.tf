@@ -38,25 +38,13 @@ resource "scaleway_vpc_private_network" "pvn" {
 
 # Kubernetes Cluster
 resource "scaleway_k8s_cluster" "cluster" {
-  name        = "k8s-cluster"
-  version     = "1.30.2"
-  cni         = "cilium"
-  region      = var.region
-  description = "Scaleway Kubernetes Cluster"
-  type        = "kapsule"
-
-  auto_upgrade {
-    enable                      = false
-    maintenance_window_day      = "sunday"
-    maintenance_window_start_hour = "3"
-  }
-
-  autoscaler_config {
-    balance_similar_node_groups = true
-  }
-
-  delete_additional_resources = false
-  private_network_id          = scaleway_vpc_private_network.pvn.id
+  name              = "k8s-cluster"
+  version           = "1.30.2"
+  cni               = "cilium"
+  region            = var.region
+  description       = "Scaleway Kubernetes Cluster"
+  type              = "kapsule"
+  private_network_id = scaleway_vpc_private_network.pvn.id
 }
 
 # Kubernetes Pool
