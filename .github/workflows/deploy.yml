@@ -28,7 +28,7 @@ jobs:
           TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
           TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
           TF_LOG: DEBUG
-        run: terraform plan -var="project_id=${{ secrets.SCW_PROJECT_ID }}" -out=tfplan
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
         working-directory: ./infra
