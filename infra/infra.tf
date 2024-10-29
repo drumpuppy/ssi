@@ -84,7 +84,7 @@ resource "scaleway_lb" "lb" {
   description             = "Load Balancer for Kubernetes"
   type                    = "lb-s"
   project_id              = var.project_id
-  ip_id                   = scaleway_lb_ip.lb_ip.id
+  ip_ids                  = [scaleway_lb_ip.lb_ip.id]
   zone                    = var.zone
   ssl_compatibility_level = "ssl_compatibility_level_intermediate"
 }
