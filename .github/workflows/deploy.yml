@@ -16,23 +16,25 @@ jobs:
       - name: Terraform Init
         working-directory: ./infra
         env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-          TF_LOG: DEBUG
+          TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
         run: terraform init
 
       - name: Terraform Plan
         working-directory: ./infra
         env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
           TF_LOG: DEBUG
         run: terraform plan -var="project_id=${{ secrets.SCW_PROJECT_ID }}" -out=tfplan
 
       - name: Terraform Apply
         working-directory: ./infra
         env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
           TF_LOG: DEBUG
         run: terraform apply -auto-approve tfplan
