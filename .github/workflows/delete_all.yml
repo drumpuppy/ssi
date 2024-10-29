@@ -10,28 +10,65 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-
-      - name: Terraform Init
-        working-directory: ./infra
-        env:
-          TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
-          TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
-          TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
-        run: terraform init
-
-      - name: Destroy Kubernetes Cluster
-        working-directory: ./infra
-        env:
-          TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
-          TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
-          TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
+      - name: Install Scaleway CLI
         run: |
-          # Destroy each resource individually using -target
-          terraform destroy -auto-approve -target=scaleway_k8s_pool.pool
-          terraform destroy -auto-approve -target=scaleway_k8s_cluster.cluster
-          terraform destroy -auto-approve -target=scaleway_lb.lb
-          terraform destroy -auto-approve -target=scaleway_lb_ip.lb_ip
-          terraform destroy -auto-approve -target=scaleway_vpc_private_network.pvn
+          curl -sL https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64.tar.gz | tar xz
+          sudo mv scw /usr/local/bin/
 
+      - name: Configure Scaleway CLI
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+        run: |
+          scw init -a "$SCW_ACCESS_KEY" -s "$SCW_SECRET_KEY" -p "$SCW_PROJECT_ID" -r fr-par
+
+      - name: Delete Kubernetes Cluster if Exists
+        run: |
+          cluster_id=$(scw k8s cluster list name=k8s-cluster --output json | jq -r '.[0].id')
+          if [ -n "$cluster_id" ]; then
+            echo "Deleting Kubernetes Cluster with ID: $cluster_id"
+            scw k8s cluster delete "$cluster_id" --force
+          else
+            echo "No Kubernetes Cluster found with the name k8s-cluster"
+          fi
+
+      - name: Delete Kubernetes Pool if Exists
+        run: |
+          pool_id=$(scw k8s pool list cluster_id="$cluster_id" --output json | jq -r '.[0].id')
+          if [ -n "$pool_id" ]; then
+            echo "Deleting Kubernetes Pool with ID: $pool_id"
+            scw k8s pool delete "$pool_id" --force
+          else
+            echo "No Kubernetes Pool found for the cluster ID: $cluster_id"
+          fi
+
+      - name: Delete Load Balancer if Exists
+        run: |
+          lb_id=$(scw lb list name=k8s-lb --output json | jq -r '.[0].id')
+          if [ -n "$lb_id" ]; then
+            echo "Deleting Load Balancer with ID: $lb_id"
+            scw lb delete "$lb_id" --force
+          else
+            echo "No Load Balancer found with the name k8s-lb"
+          fi
+
+      - name: Delete Load Balancer IP if Exists
+        run: |
+          lb_ip_id=$(scw lb ip list project_id="$SCW_PROJECT_ID" --output json | jq -r '.[0].id')
+          if [ -n "$lb_ip_id" ]; then
+            echo "Deleting Load Balancer IP with ID: $lb_ip_id"
+            scw lb ip delete "$lb_ip_id" --force
+          else
+            echo "No Load Balancer IP found for project ID: $SCW_PROJECT_ID"
+          fi
+
+      - name: Delete Private Network if Exists
+        run: |
+          network_id=$(scw vpc private-network list name=k8s-private-network --output json | jq -r '.[0].id')
+          if [ -n "$network_id" ]; then
+            echo "Deleting Private Network with ID: $network_id"
+            scw vpc private-network delete "$network_id" --force
+          else
+            echo "No Private Network found with the name k8s-private-network"
+          fi
