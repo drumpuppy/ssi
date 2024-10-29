@@ -48,7 +48,7 @@ resource "scaleway_k8s_cluster" "cluster" {
   auto_upgrade {
     enable                      = false
     maintenance_window_day      = "sunday"
-    maintenance_window_start_hour = "03:00"
+    maintenance_window_start_hour = "3"
   }
 
   autoscaler_config {
@@ -86,7 +86,7 @@ resource "scaleway_lb" "lb" {
   project_id              = var.project_id
   ip_id                   = scaleway_lb_ip.lb_ip.id
   zone                    = var.zone
-  ssl_compatibility_level = "intermediate"
+  ssl_compatibility_level = "ssl_compatibility_level_intermediate"
 }
 
 # Load Balancer IP
