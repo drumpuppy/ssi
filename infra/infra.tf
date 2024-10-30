@@ -10,9 +10,7 @@ terraform {
     bucket          = "your-s3-bucket-name"
     key             = "terraform/state"
     region          = "fr-par"
-    endpoints       = {
-      s3 = "https://s3.fr-par.scw.cloud"
-    }
+    endpoint        = "https://s3.fr-par.scw.cloud"
   }
 }
 
