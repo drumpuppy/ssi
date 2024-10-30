@@ -19,7 +19,10 @@ configuration nécéssaire : Oui (clé API de scw et de Hashicorp cloud sur Gith
 
 - création de deux workflow :
   -> deploy : instancie les ressources sur SCW
-  -> destroy_all : détruit toutes les ressources sur SCW 
+  -> destroy_all : détruit toutes les ressources sur SCW
+
+les fichiers de configurations sont situé dans :
+.github/workflows/
 
 ------- Hashicorp cloud ------
 
