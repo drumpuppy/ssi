@@ -6,11 +6,11 @@ terraform {
   }
   required_version = ">= 0.13"
 
-  backend "s3" {
-    bucket          = "your-s3-bucket-name"
-    key             = "terraform/state"
-    region          = "fr-par"
-    endpoint        = "https://s3.fr-par.scw.cloud"
+  backend "remote" {
+    organization = "ssi-soc-ia"
+    workspaces {
+      name = "ssi"
+    }
   }
 }
 
