@@ -29,7 +29,7 @@ jobs:
           # Use the official script from Scaleway to install the CLI
           curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
           # Verify installation
-          scw -v
+          scw version
 
 
       - name: Configure Scaleway CLI
