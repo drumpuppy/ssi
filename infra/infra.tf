@@ -49,6 +49,21 @@ provider "scaleway" {
   zone       = var.zone
 }
 
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
+
+resource "null_resource" "helm_falco" {
+  provisioner "local-exec" {
+    command = <<EOT
+      helm repo add falcosecurity https://falcosecurity.github.io/charts
+      helm repo update
+      helm install falco falcosecurity/falco --create-namespace --namespace falco
+    EOT
+  }
+
+  depends_on = [scaleway_k8s_cluster.cluster, scaleway_k8s_pool.pool]
+}
 
 
 # Private Virtual Network
