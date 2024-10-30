@@ -32,14 +32,22 @@ jobs:
           scw version
 
 
-      - name: Configure Scaleway CLI
+      - name: Manually Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
-          SCW_DEFAULT_REGION: "fr-par"
         run: |
-          scw init
+          mkdir -p ~/.config/scw
+          cat <<EOF > ~/.config/scw/config.yaml
+          access_key: $SCW_ACCESS_KEY
+          secret_key: $SCW_SECRET_KEY
+          default_organization_id: $SCW_PROJECT_ID
+          default_project_id: $SCW_PROJECT_ID
+          default_region: fr-par
+          default_zone: fr-par-1
+          EOF
+
 
 
 
