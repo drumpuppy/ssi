@@ -11,10 +11,6 @@ terraform {
     key                         = "terraform/state"
     region                      = "fr-par"
     endpoint                    = "s3.fr-par.scw.cloud"
-    access_key                  = var.scw_access_key
-    secret_key                  = var.scw_secret_key
-    skip_region_validation      = true
-    skip_credentials_validation = true
   }
 }
 
