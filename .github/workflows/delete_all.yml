@@ -10,18 +10,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download and Install Scaleway CLI
+      - name: Install Scaleway CLI
         run: |
-          # Download the correct release and ensure it's in binary format
-          curl -sL "https://github.com/scaleway/scaleway-cli/releases/download/v2.5.1/scaleway-cli_2.5.1_linux_amd64.tar.gz" -o scaleway-cli.tar.gz
-          # Unpack the tarball
-          tar -xzf scaleway-cli.tar.gz
-          # Move the binary to /usr/local/bin and rename it to scw
-          sudo mv scaleway /usr/local/bin/scw
+          # Download the latest binary directly without unpacking
+          curl -sL "https://github.com/scaleway/scaleway-cli/releases/latest/download/scaleway-cli-linux-amd64" -o scw
+          # Move the binary to /usr/local/bin
+          sudo mv scw /usr/local/bin/scw
           # Make it executable
           sudo chmod +x /usr/local/bin/scw
           # Verify installation
           scw -v
+
 
 
       - name: Configure Scaleway CLI
