@@ -49,11 +49,7 @@ provider "scaleway" {
   zone       = var.zone
 }
 
-resource "scaleway_object_bucket" "state_bucket" {
-  bucket_prefix = "terraform-state"
-  region        = var.region
-  acl           = "private"
-}
+
 
 # Private Virtual Network
 resource "scaleway_vpc_private_network" "pvn" {
@@ -118,5 +114,4 @@ resource "scaleway_lb" "lb" {
 resource "scaleway_lb_ip" "lb_ip" {
   project_id = var.scw_project_id
   zone       = var.zone
-  private_network_id          = scaleway_vpc_private_network.pvn.id
 }
