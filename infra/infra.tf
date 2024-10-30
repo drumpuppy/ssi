@@ -5,6 +5,17 @@ terraform {
     }
   }
   required_version = ">= 0.13"
+
+  backend "s3" {
+    bucket                      = "terraform-state-bucket"
+    key                         = "terraform/state"
+    region                      = "fr-par"
+    endpoint                    = "s3.fr-par.scw.cloud"
+    access_key                  = var.scw_access_key
+    secret_key                  = var.scw_secret_key
+    skip_region_validation      = true
+    skip_credentials_validation = true
+  }
 }
 
 variable "scw_access_key" {
@@ -41,6 +52,12 @@ provider "scaleway" {
   project_id = var.scw_project_id
   region     = var.region
   zone       = var.zone
+}
+
+resource "scaleway_object_bucket" "state_bucket" {
+  bucket_prefix = "terraform-state"
+  region        = var.region
+  acl           = "private"
 }
 
 # Private Virtual Network
@@ -106,4 +123,5 @@ resource "scaleway_lb" "lb" {
 resource "scaleway_lb_ip" "lb_ip" {
   project_id = var.scw_project_id
   zone       = var.zone
+  private_network_id          = scaleway_vpc_private_network.pvn.id
 }
