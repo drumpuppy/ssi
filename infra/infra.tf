@@ -9,9 +9,7 @@ terraform {
   backend "s3" {
     bucket          = "your-s3-bucket-name"
     key             = "terraform/state"
-    region          = "us-east-1"  # Placeholder for compatibility
-    access_key      = var.scw_access_key
-    secret_key      = var.scw_secret_key
+    region          = "fr-par"
     endpoints       = {
       s3 = "https://s3.fr-par.scw.cloud"
     }
