@@ -38,7 +38,12 @@ jobs:
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
         run: |
-          scw init -a "$SCW_ACCESS_KEY" -s "$SCW_SECRET_KEY" -p "$SCW_PROJECT_ID" -r fr-par
+          scw init \
+            --access-key "$SCW_ACCESS_KEY" \
+            --secret-key "$SCW_SECRET_KEY" \
+            --project-id "$SCW_PROJECT_ID" \
+            --region fr-par
+
 
       # Generate kubeconfig file with Scaleway CLI
       - name: Configure kubeconfig
