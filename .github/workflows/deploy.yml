@@ -39,7 +39,7 @@ jobs:
           SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
           SCW_DEFAULT_REGION: "fr-par"
         run: |
-          scw init --region "$SCW_DEFAULT_REGION"
+          scw init
 
 
 
