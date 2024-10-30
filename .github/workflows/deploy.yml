@@ -24,7 +24,7 @@ jobs:
             -backend-config="access_key=${{ secrets.SCW_ACCESS_KEY }}" \
             -backend-config="secret_key=${{ secrets.SCW_SECRET_KEY }}" \
             -backend-config="bucket=your-s3-bucket-name" \
-            -backend-config="endpoints.s3=https://s3.fr-par.scw.cloud" \
+            -backend-config="endpoint=https://s3.fr-par.scw.cloud" \
             -backend-config="region=fr-par"
 
       - name: Terraform Plan
