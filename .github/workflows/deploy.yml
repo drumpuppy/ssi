@@ -1,4 +1,4 @@
-name: Deploy Kubernetes Cluster on Terraform Cloud
+name: Deploy Kubernetes Cluster on Scaleway
 
 on:
   workflow_dispatch:
@@ -17,6 +17,17 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_CLOUD_TOKEN }}
           terraform_version: latest
 
+      - name: Install Helm
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          scw k8s kubeconfig install $(scw k8s cluster list name=k8s-cluster --output json | jq -r '.[0].id') > ~/.kube/config
+
       - name: Terraform Init
         working-directory: ./infra
         env:
@@ -25,20 +36,10 @@ jobs:
           TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
         run: terraform init
 
-      - name: Terraform Plan
-        working-directory: ./infra
-        env:
-          TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
-          TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
-          TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
-          TF_LOG: DEBUG
-        run: terraform plan  # Removed the -out=tfplan option
-
       - name: Terraform Apply
         working-directory: ./infra
         env:
           TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
           TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
           TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
-          TF_LOG: DEBUG
-        run: terraform apply -auto-approve  # Removed tfplan argument
+        run: terraform apply -auto-approve
