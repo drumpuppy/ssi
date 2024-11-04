@@ -28,26 +28,31 @@ jobs:
           curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
           scw version
 
-      - name: Initialize Scaleway CLI Configuration
+      - name: Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-          SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+          SCW_DEFAULT_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
+          SCW_DEFAULT_REGION: fr-par
+          SCW_DEFAULT_ZONE: fr-par-1
         run: |
-          # Configure Scaleway CLI with environment variables
-          echo -e "${{ secrets.SCW_ACCESS_KEY }}\n${{ secrets.SCW_SECRET_KEY }}\n${{ secrets.SCW_PROJECT_ID }}\nfr-par\nfr-par-1\n" | scw init
+          scw config set access-key "$SCW_ACCESS_KEY"
+          scw config set secret-key "$SCW_SECRET_KEY"
+          scw config set default-organization-id "$SCW_DEFAULT_ORGANIZATION_ID"
+          scw config set default-project-id "$SCW_DEFAULT_PROJECT_ID"
+          scw config set default-region "$SCW_DEFAULT_REGION"
+          scw config set default-zone "$SCW_DEFAULT_ZONE"
 
       - name: Configure kubeconfig
         run: |
           mkdir -p ~/.kube
-          # Retrieve the cluster ID without specifying organization ID flag
           cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
           if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
             echo "Error: Kubernetes cluster ID not found or is not valid."
             exit 1
           fi
           echo "Cluster ID: $cluster_id"
-          # Download kubeconfig for the specified cluster ID
           scw k8s kubeconfig get "$cluster_id" --region=fr-par > ~/.kube/config
 
       - name: Deploy Falco with Helm
