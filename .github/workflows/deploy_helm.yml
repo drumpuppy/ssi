@@ -50,10 +50,15 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      - name: Deploy Falco with Helm using custom values
+      - name: Deploy Falco with Helm
         run: |
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo update
+          # Uninstall Falco if it is already installed
+          if helm list -n falco | grep -q 'falco'; then
+            helm uninstall falco --namespace falco
+          fi
+          # Install Falco with custom values
           helm install falco falcosecurity/falco \
             --create-namespace \
             --namespace falco \
