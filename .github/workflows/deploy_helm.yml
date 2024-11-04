@@ -35,7 +35,7 @@ jobs:
           SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
         run: |
           # Configure Scaleway CLI with environment variables
-          echo -e "${SCW_ACCESS_KEY}\n${SCW_SECRET_KEY}\n${SCW_PROJECT_ID}\nfr-par\nfr-par-1\n" | scw init
+          echo -e "${{ secrets.SCW_ACCESS_KEY }}\n${{ secrets.SCW_SECRET_KEY }}\n${{ secrets.SCW_PROJECT_ID }}\nfr-par\nfr-par-1\n" | scw init
 
       - name: Configure kubeconfig
         run: |
