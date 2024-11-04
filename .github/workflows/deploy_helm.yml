@@ -30,10 +30,8 @@ jobs:
           SCW_DEFAULT_REGION: fr-par
           SCW_DEFAULT_ZONE: fr-par-1
         run: |
-          # Create the configuration directory and an empty file for Scaleway CLI if it doesn't exist
           mkdir -p ~/.config/scw
           touch ~/.config/scw/config.yaml
-          # Set the necessary configuration values
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
           scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
@@ -44,19 +42,19 @@ jobs:
       - name: Configure kubeconfig
         run: |
           mkdir -p ~/.kube
-          # Retrieve the cluster ID
           cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
           if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
             echo "Error: Kubernetes cluster ID not found or is not valid."
             exit 1
           fi
           echo "Cluster ID: $cluster_id"
-          # Get kubeconfig without specifying --region, as it is set in the config
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-
-      - name: Deploy Falco with Helm
+      - name: Deploy Falco with Helm using custom values
         run: |
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo update
-          helm install falco falcosecurity/falco --create-namespace --namespace falco
+          helm install falco falcosecurity/falco \
+            --create-namespace \
+            --namespace falco \
+            --values ./helm/values-falco.yaml
