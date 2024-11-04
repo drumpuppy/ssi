@@ -54,7 +54,7 @@ jobs:
         run: |
           mkdir -p ~/.kube
           # Retrieve the cluster ID by explicitly passing the organization and project ID
-          cluster_id=$(scw k8s cluster list name=k8s-cluster organization-id=$SCW_ORGANIZATION_ID project-id=$SCW_PROJECT_ID --output json | jq -r '.[0].id')
+          cluster_id=$(scw k8s cluster list name=k8s-cluster organization-id=${{ secrets.SCW_ORGANIZATION_ID }} ${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
           if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
             echo "Error: Kubernetes cluster ID not found or is not valid."
             exit 1
