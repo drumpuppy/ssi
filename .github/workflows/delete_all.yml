@@ -1,4 +1,4 @@
-name: Destroy Kubernetes Cluster on Scaleway
+name: /!\ Destroy K8s Cluster /!\
 
 on:
   workflow_dispatch:
