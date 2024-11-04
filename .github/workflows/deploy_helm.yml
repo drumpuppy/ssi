@@ -1,4 +1,4 @@
-name: Deploy Helm Apps
+name: Deploy Helm Charts
 
 on:
   workflow_dispatch:
@@ -28,31 +28,25 @@ jobs:
           curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
           scw version
 
-      # Initialize Scaleway CLI with explicit credentials and configuration
+      # Set environment variables directly for Scaleway CLI configuration
       - name: Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-          SCW_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
-          SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+          SCW_DEFAULT_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
           SCW_DEFAULT_REGION: fr-par
           SCW_DEFAULT_ZONE: fr-par-1
         run: |
-          scw init \
-            --access-key "$SCW_ACCESS_KEY" \
-            --secret-key "$SCW_SECRET_KEY" \
-            --organization-id "$SCW_ORGANIZATION_ID" \
-            --project-id "$SCW_PROJECT_ID" \
-            --region "$SCW_DEFAULT_REGION" \
-            --zone "$SCW_DEFAULT_ZONE" <<< "y"
-          scw config get
+          echo "Scaleway CLI configured with environment variables."
+          scw config get  # Check that configuration is correct
 
       - name: Configure kubeconfig
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-          SCW_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
-          SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+          SCW_DEFAULT_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
         run: |
           mkdir -p ~/.kube
           # Retrieve the cluster ID using explicit project and organization ID
@@ -66,7 +60,7 @@ jobs:
           fi
           echo "Cluster ID: $cluster_id"
           # Download kubeconfig for the specified cluster ID
-          scw k8s kubeconfig get "$cluster_id" --region=$SCW_DEFAULT_REGION > ~/.kube/config
+          scw k8s kubeconfig get "$cluster_id" --region=fr-par > ~/.kube/config
 
       # Install Falco using Helm on the Kubernetes cluster
       - name: Deploy Falco with Helm
