@@ -63,3 +63,15 @@ jobs:
             --create-namespace \
             --namespace falco \
             --values ./helm/values-falco.yaml
+
+      - name: Deploy Elasticsearch with Helm
+        run: |
+          helm repo add elastic https://helm.elastic.co
+          helm repo update
+          if helm list -n elasticsearch | grep -q 'elasticsearch'; then
+            helm uninstall elasticsearch --namespace elasticsearch
+          fi
+          helm install elasticsearch elastic/elasticsearch \
+            --create-namespace \
+            --namespace elasticsearch \
+            --values ./helm/values-elasticsearch.yaml
