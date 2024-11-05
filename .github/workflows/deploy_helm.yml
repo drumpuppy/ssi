@@ -75,3 +75,18 @@ jobs:
             --create-namespace \
             --namespace elasticsearch \
             --values ./helm/values-elasticsearch.yaml
+
+
+      - name: Deploy Prometheus with Helm
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          # Uninstall Prometheus if it is already installed
+          if helm list -n prometheus | grep -q 'prometheus'; then
+            helm uninstall prometheus --namespace prometheus
+          fi
+          helm install prometheus prometheus-community/prometheus \
+            --create-namespace \
+            --namespace prometheus \
+            --values ./helm/values-prometheus.yaml
+
