@@ -90,3 +90,25 @@ jobs:
             --namespace prometheus \
             --values ./helm/values-prometheus.yaml
 
+
+      - name: Deploy Istio with Helm
+        run: |
+          helm repo add istio https://istio-release.storage.googleapis.com/charts
+          helm repo update
+          
+          # Uninstall Istio if already installed
+          if helm list -n istio-system | grep -q 'istiod'; then
+            helm uninstall istiod --namespace istio-system
+            helm uninstall istio-ingress --namespace istio-system
+          fi
+          
+          # Create namespace for Istio if it does not already exist
+          kubectl get namespace istio-system || kubectl create namespace istio-system
+          
+          # Install Istio base and ingress gateway
+          helm install istiod istio/istiod --namespace istio-system \
+            --values ./helm/values-istio.yaml
+          helm install istio-ingress istio/gateway --namespace istio-system \
+            --values ./helm/values-istio.yaml
+
+
