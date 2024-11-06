@@ -1,69 +1,11 @@
-vault_addr: &vault_addr "http://vault.cluster.local:8200"
-vault_path: &vault_path "kubernetes"
-
-#AWS load balancer configuration for using ELB(AWS Elastic Load Balancer)
-#Some resources require loadbalancer. Refer to Wazuh documentation for more information
-aws:
-  elb:
-    enabled: true
-    protocol: tcp
-
-    # Enabled custom certificates for AWS ELB
-    cert:
-      enabled: false
-      certName: demoCert
-
-    # Enabled AWS ELB for Kibana Service
-    kibana:
-      enabled: false
-      port: 443
-      backEnd: https
-
-    # AWS ELB for Elasticsearch Service
-    elasticsearch:
-      enabled: false
-
-    # AWS ELB for Wazuh Master Service
-    wazuh_master:
-      enabled: true
-
-    # AWS LB for Wazuh worker Service
-    wazuh_workers:
-      enabled: true
-
-    # AWS DNS53 configuration, refer to AWS DNS53 documentation together with Wazuh Documentation how to set it up
-    dns53:
-      enabled: false
-      wazuhMasterDomain: master-foobar.com
-      wazuhWorkerDomain: worker-foobar.com
-      kibanaDomain: kibana-foobar.com
-
-# Use provided demo certificates
-# for production please use dynamically signed certificates either provided by your own solution of Hashicorp Vault
-democerts:
-  enabled: true
-
-vault:
-  enabled: false
-  security:
-    vault_addr: *vault_addr
-    vault_role: opendistro-elastic
-    vault_path: *vault_path
-    vault_skip_verify: true
-
-# Elasticsearch statefulset deployment configuration
-elasticsearch:
+indexer:
   deployment:
     enabled: true
 
   selfcert:
     enabled: false
 
-  elkversion: "7.9.1"
-  master:
-    replicas: 3
-  elasticsearch:
-    discoveryOverride: ""
+  replicas: 3
 
   service:
     httpPort: 9200
@@ -72,12 +14,11 @@ elasticsearch:
     type: ClusterIP
 
   images:
-    repository: amazon/opendistro-for-elasticsearch
-    tag: "1.11.0"
+    repository: wazuh/wazuh-indexer
+    tag: "4.6.0"
     pullPolicy: IfNotPresent
     updateStrategy: RollingUpdate
     replicaCount: 3
-    # If you're using private registry add secret name for docker credentials
     imagePullSecrets:
       enabled: false
       secret: {}
@@ -92,41 +33,34 @@ elasticsearch:
   config:
 
   env:
+    OPENSEARCH_JAVA_OPTS: "-Xms1g -Xmx1g -Dlog4j2.formatMsgNoLookups=true"
     CLUSTER_NAME: "wazuh"
-    #NETWORK_HOST: "_eth0_"
+    # NETWORK_HOST: "_eth0_"
     NETWORK_HOST: "0.0.0.0"
     HTTP_CORS_ENABLE: "false"
     ALLOW_DEMOCERTIFICATES: "false"
     # The minimum number of masters that will be able to form a quorum. This
     # should be (#masters / 2) + 1. Default is 2.
     NUMBER_OF_MASTERS: "3"
-    DISCOVERY_SERVICE: "wazuh-elasticsearch"
+    DISABLE_INSTALL_DEMO_CONFIG: "true"
+    DISCOVERY_SERVICE: "wazuh-sand-indexer-nodes"
+
 
   plugins: []
 
-  # Default users provided by Wazuh
-  # Check wazuh documentation for default credentials
-  internal_users:
-    admin: "$2y$12$K/SpwjtB.wOHJ/Nc6GVRDuc1h0rM1DfvziFRNPtk27P.c4yDr9njO"
-    kibanaserver: "$2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H."
-    kibanaro: "$2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC"
-    logstash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
-    readall: "$2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2"
-    snapshotrestore: "$2y$12$DpwmetHKwgYnorbgdvORCenv4NAK8cPUg8AI6pxLCuWf/ALc0.v7W"
-
-    storageSize: 50Gi
-    storageClassName: default
+  storageSize: 50Gi
+  storageClassName: gp2
 
 # Kibana for elasticsearch with Wazuh plugins pre-installed
-kibana:
+dashboard:
   deployment:
     enabled: true
 
   replicas: 1
 
   images:
-    repository: wazuh/wazuh-kibana
-    tag: "4.1.5"
+    repository: wazuh/wazuh-dashboard
+    tag: "4.6.0"
     pullPolicy: IfNotPresent
     updateStrategy: OnDelete
     resources:
@@ -147,19 +81,23 @@ kibana:
     type: ClusterIP
 
   env:
-    ELASTICSEARCH_URL: http://wazuh-elasticsearch-0.wazuh-elasticsearch:9200
-    WAZUH_API_URL: https://wazuh-manager-master-0.wazuh-cluster
-
+    INDEXER_URL: https://wazuh-sand-indexer-rest
+    WAZUH_API_URL: https://wazuh-manager-master-0.wazuh-sand-cluster
+    WAZUH_API_HOST: wazuh-manager-master-0.wazuh-sand-cluster
+serviceAccount:
+  create: true
+#  annotations:
+#    eks.amazonaws.com/role-arn: arn:aws:iam::xxxxx:role/wazuh-test
 wazuh:
+  syslog_enable: true
   deployment:
     enabled: true
-
   master_replicas: 1
   worker_replicas: 2
-
+  key: c98b62a9b6169ac5f67dae55ae4a9088
   images:
-    repository: wazuh/wazuh
-    tag: "4.1.5"
+    repository: wazuh/wazuh-manager
+    tag: "4.6.0"
     pullSecret: regcred
     resources:
       requests:
@@ -180,9 +118,10 @@ wazuh:
     FILEBEAT_SSL_VERIFICATION_MODE: none
 
   service:
+    # annotations:
     type: ClusterIP
-    masterType: LoadBalancer
-    workerType: LoadBalancer
+    masterType: ClusterIP
+    workerType: ClusterIP
     m_nodeType: master
     w_nodeType: worker
     ports:
@@ -191,49 +130,24 @@ wazuh:
       wazuhInternal: 1516
       agentEvents: 1514
 
-# Wazuh Agent installed in DaemonSet form
-# Currently still in PoC
-agent:
-  deployment:
-    enabled: false
 
-  rbac:
-    create: true
-
-  serviceAccount:
-    create: true
-    name: wazuh-agent-daemonset
-
-  image:
-    repository: kajov/wazuh-agent-installer
-    tag: "latest"
-    imagePullSecrets:
-      name: regrecd
-      enabled: false
-    resources:
-      requests:
-        cpu: 100m
-        memory: 250m
-      limit:
-        cpu: 200m
-        memory: 500m
-
-  # Wazuh Manager URL or IP. Reffer to Wazuh documentation for agent installation procedure for more information
-  env:
-    W_MANAGER: foobar.com
-
-## Automated Storage class deployment if you're deploying for testing in minikube
-# since it's not using the default standard storage class
-
-storage:
-  minikube:
-    enabled: true
+  storageSizeWorker: 50Gi
+  storageClassNameWorker: gp2
+  storageSizeMaster: 50Gi
+  storageClassNameMaster: gp2
 
 identifier:
-  clusterId: autogenerated
-  tenantId: autogenerated
-  tenantName: autogenerated
-  spaceId: autogenerated
-  spaceName: autogenerated
-  appId: autogenerated
-  appName: autogenerated
+#  clusterId: autogenerated
+#  tenantId: autogenerated
+#  tenantName: autogenerated
+#  spaceId: autogenerated
+#  spaceName: autogenerated
+  appId: sand
+  appName: wazuh
+
+ingress:
+  enabled: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  host: "wazuh.example.com"
