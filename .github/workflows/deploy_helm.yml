@@ -110,6 +110,8 @@ jobs:
             --values ./helm/values-istio.yaml
           helm install istio-ingress istio/gateway --namespace istio-system \
             --values ./helm/values-istio.yaml
+
+
       - name: Deploy Wazuh with Helm
 
           on:
