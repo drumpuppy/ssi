@@ -113,46 +113,20 @@ jobs:
 
 
       - name: Deploy Wazuh with Helm
-
-          on:
-            push:
-              branches:
-                - main  # déclenchement sur la branche principale
-            workflow_dispatch:  # pour lancer manuellement
-          
-          jobs:
-            deploy:
-              runs-on: ubuntu-latest
-          
-              steps:
-                - name: Checkout repository
-                  uses: actions/checkout@v2
-          
-                - name: Install Kubernetes CLI (kubectl)
-                  run: |
-                    curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-                    chmod +x ./kubectl
-                    sudo mv ./kubectl /usr/local/bin/kubectl
-          
-                - name: Install Helm
-                  run: |
-                    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          
-                - name: Add Wazuh Helm repository (optional, if using public chart)
-                  run: helm repo add wazuh https://helm.wazuh.com
-          
-                - name: Update Helm repositories
-                  run: helm repo update
-          
-                - name: Deploy Wazuh
-                  env:
-                    KUBECONFIG: ${{ secrets.KUBECONFIG }}  # Assurez-vous d'ajouter le secret KUBECONFIG
-                  run: |
-                    helm upgrade --install wazuh wazuh/wazuh \
-                      --namespace wazuh \
-                      --create-namespace \
-                      -f helm-charts/wazuh/values.yaml
-     
             
+        run: |
+          helm repo add wazuh https://packages.wazuh.com/4.x/helm/stable
+          helm repo update
+          
+          # Désinstallez Wazuh s'il est déjà installé
+          if helm list -n wazuh | grep -q 'wazuh'; then
+            helm uninstall wazuh --namespace wazuh
+          fi
+          
+          # Installez Wazuh avec un fichier de valeurs personnalisé
+          helm install wazuh wazuh/wazuh \
+            --create-namespace \
+            --namespace wazuh \
+            --values ./helm/values-wazuh.yaml
 
-
+          
