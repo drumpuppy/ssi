@@ -67,9 +67,10 @@ jobs:
           else
             for volume_id in $volume_ids; do
               echo "Deleting volume $volume_id..."
-              scw instance volume delete $volume_id --force
+              scw instance volume delete $volume_id || echo "Failed to delete volume $volume_id. It may be in use."
             done
           fi
+
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
