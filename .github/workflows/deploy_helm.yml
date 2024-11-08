@@ -99,15 +99,3 @@ jobs:
             --values ./helm/values-istio.yaml
           helm install istio-ingress istio/gateway --namespace istio-system \
             --values ./helm/values-istio.yaml
-
-      - name: Deploy Wazuh with Helm
-        run: |
-          helm repo add wazuh https://wazuh.github.io/wazuh-helm
-          helm repo update
-          if helm list -n wazuh | grep -q 'wazuh'; then
-            helm uninstall wazuh --namespace wazuh
-          fi
-          helm install wazuh wazuh/wazuh \
-            --create-namespace \
-            --namespace wazuh \
-            --values ./helm/values-wazuh.yaml
