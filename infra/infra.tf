@@ -106,6 +106,11 @@ resource "scaleway_lb" "lb" {
   ip_ids                  = [scaleway_lb_ip.lb_ip.id]
   zone                    = var.zone
   ssl_compatibility_level = "ssl_compatibility_level_intermediate"
+
+  private_network {
+    private_network_id = scaleway_vpc_private_network.pvn.id
+  }
+  depends_on = [scaleway_vpc_private_network.pvn]
 }
 
 # Load Balancer IP
