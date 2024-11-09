@@ -85,25 +85,13 @@ jobs:
 
       - name: Delete All Block Storage Volumes
         run: |
-          volume_ids=$(scw instance volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
+          volume_ids=$(scw block volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
           if [ -z "$volume_ids" ]; then
             echo "No block storage volumes found."
           else
             for volume_id in $volume_ids; do
-              echo "Attempting to delete volume $volume_id..."
-              retries=5
-              for attempt in $(seq 1 $retries); do
-                scw instance volume delete $volume_id
-                if ! scw instance volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -e --arg id "$volume_id" '.[] | select(.id == $id)' > /dev/null; then
-                  echo "Volume $volume_id deleted successfully."
-                  break
-                elif [ "$attempt" -eq "$retries" ]; then
-                  echo "Failed to delete volume $volume_id after $retries attempts."
-                else
-                  echo "Volume $volume_id still exists, retrying in 5 seconds... (Attempt $attempt/$retries)"
-                  sleep 5
-                fi
-              done
+              echo "Deleting volume $volume_id..."
+              scw block volume delete $volume_id || echo "Failed to delete volume $volume_id. It may be in use."
             done
           fi
 
