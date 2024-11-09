@@ -39,17 +39,6 @@ jobs:
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
-      - name: Delete All Block Storage Volumes
-        run: |
-          volume_ids=$(scw block volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
-          if [ -z "$volume_ids" ]; then
-            echo "No block storage volumes found."
-          else
-            for volume_id in $volume_ids; do
-              echo "Deleting volume $volume_id..."
-              scw block volume delete volume-id=$volume_id zone=fr-par-1 || echo "Failed to delete volume $volume_id. It may be in use."
-            done
-          fi
 
       - name: Configure kubeconfig
         run: |
@@ -94,6 +83,18 @@ jobs:
           TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
           TF_LOG: DEBUG
         run: terraform destroy -auto-approve
+
+      - name: Delete All Block Storage Volumes
+        run: |
+          volume_ids=$(scw block volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
+          if [ -z "$volume_ids" ]; then
+            echo "No block storage volumes found."
+          else
+            for volume_id in $volume_ids; do
+              echo "Deleting volume $volume_id..."
+              scw block volume delete volume-id=$volume_id zone=fr-par-1 || echo "Failed to delete volume $volume_id. It may be in use."
+            done
+          fi
 
       
 
