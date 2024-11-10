@@ -97,7 +97,7 @@ resource "scaleway_k8s_cluster" "cluster" {
   delete_additional_resources = false
 
   private_network_id          = scaleway_vpc_private_network.pvn.id
-  private_network_subnet_id = scaleway_vpc_private_network_subnet.private_subnet.id
+  private_network_subnet_id   = scaleway_vpc_private_network_subnet.private_subnet.id
 }
 
 # Kubernetes Pool
