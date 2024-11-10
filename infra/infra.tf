@@ -113,20 +113,20 @@ resource "scaleway_lb" "lb" {
     private_network_id = scaleway_vpc_private_network.pvn.id
   }
 
-  frontend {
-    name            = "frontend-http"
-    port            = 80
-    backend_port    = 80
-    protocol        = "HTTP"
-    bind_ip         = "0.0.0.0"  # Peut être changé pour une IP spécifique si nécessaire
+# Frontend configuration for HTTP and HTTPS
+  frontend_ip {
+    ip_id = scaleway_lb_ip.lb_ip.id
   }
 
-  frontend {
-    name            = "frontend-https"
-    port            = 443
-    backend_port    = 443
-    protocol        = "HTTPS"
-    bind_ip         = "0.0.0.0"  # Peut être changé pour une IP spécifique si nécessaire
+  # Backend settings are specified as part of the service configuration.
+  backend {
+    name = "k8s-backend"
+    port = 80
+  }
+
+  backend {
+    name = "k8s-backend-https"
+    port = 443
   }
 
 
