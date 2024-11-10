@@ -99,19 +99,6 @@ resource "scaleway_k8s_pool" "pool" {
 }
 
 
-# Variables pour les règles de sécurité
-variable "allowed_ips" {
-  type    = list(string)
-  default = ["0.0.0.0/0"] # Remplacer par les IP autorisées
-}
-
-variable "lb_allowed_ports" {
-  type    = list(number)
-  default = [80, 443]
-}
-
-
-
 # Load Balancer
 resource "scaleway_lb" "lb" {
   name                    = "k8s-lb"
@@ -126,17 +113,22 @@ resource "scaleway_lb" "lb" {
     private_network_id = scaleway_vpc_private_network.pvn.id
   }
 
-
-# Règles de sécurité pour les ports autorisés
-  dynamic "frontend" {
-    for_each = var.lb_allowed_ports
-    content {
-      inbound_port = frontend.value
-      backend_port = frontend.value
-      # Configuration de l'accès aux IP spécifiées dans allowed_ips
-      allowed_ips = var.allowed_ips
-    }
+  frontend {
+    name            = "frontend-http"
+    port            = 80
+    backend_port    = 80
+    protocol        = "HTTP"
+    bind_ip         = "0.0.0.0"  # Peut être changé pour une IP spécifique si nécessaire
   }
+
+  frontend {
+    name            = "frontend-https"
+    port            = 443
+    backend_port    = 443
+    protocol        = "HTTPS"
+    bind_ip         = "0.0.0.0"  # Peut être changé pour une IP spécifique si nécessaire
+  }
+
 
   depends_on = [scaleway_vpc_private_network.pvn]
 }
