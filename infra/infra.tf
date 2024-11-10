@@ -55,6 +55,26 @@ resource "scaleway_vpc_private_network" "pvn" {
   project_id = var.scw_project_id
 }
 
+# Sous-réseau public pour le Load Balancer
+resource "scaleway_vpc_private_network_subnet" "public_subnet" {
+  vpc_id     = scaleway_vpc_private_network.pvn.id
+  region     = var.region
+  zone       = var.zone
+  cidr_block = "192.168.1.0/24"
+
+  tags = ["public"]
+}
+
+# Sous-réseau privé pour le cluster et les nœuds
+resource "scaleway_vpc_private_network_subnet" "private_subnet" {
+  vpc_id     = scaleway_vpc_private_network.pvn.id
+  region     = var.region
+  zone       = var.zone
+  cidr_block = "192.168.2.0/24"
+
+  tags = ["private"]
+}
+
 # Kubernetes Cluster
 resource "scaleway_k8s_cluster" "cluster" {
   name        = "k8s-cluster"
