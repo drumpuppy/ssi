@@ -50,18 +50,6 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      - name: Deploy Falco with Helm
-        run: |
-          helm repo add falcosecurity https://falcosecurity.github.io/charts
-          helm repo update
-          if helm list -n falco | grep -q 'falco'; then
-            helm uninstall falco --namespace falco
-          fi
-          helm install falco falcosecurity/falco \
-            --create-namespace \
-            --namespace falco \
-            --values ./helm/values-falco.yaml
-
       - name: Deploy Elasticsearch with Helm
         run: |
           helm repo add elastic https://helm.elastic.co
@@ -85,17 +73,3 @@ jobs:
             --create-namespace \
             --namespace prometheus \
             --values ./helm/values-prometheus.yaml
-
-      - name: Deploy Istio with Helm
-        run: |
-          helm repo add istio https://istio-release.storage.googleapis.com/charts
-          helm repo update
-          if helm list -n istio-system | grep -q 'istiod'; then
-            helm uninstall istiod --namespace istio-system
-            helm uninstall istio-ingress --namespace istio-system
-          fi
-          kubectl get namespace istio-system || kubectl create namespace istio-system
-          helm install istiod istio/istiod --namespace istio-system \
-            --values ./helm/values-istio.yaml
-          helm install istio-ingress istio/gateway --namespace istio-system \
-            --values ./helm/values-istio.yaml
