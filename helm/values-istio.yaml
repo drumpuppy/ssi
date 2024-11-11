@@ -20,8 +20,8 @@ _internal_defaults_do_not_set:
   # Resources for a small pilot install
   resources:
     requests:
-      cpu: 500m
-      memory: 2048Mi
+      cpu: 300m
+      memory: 512Mi
 
   # Set to `type: RuntimeDefault` to use the default profile if available.
   seccompProfile: {}
@@ -91,7 +91,8 @@ _internal_defaults_do_not_set:
   configMap: true
 
   # Additional labels to apply on the pod level for monitoring and logging configuration.
-  podLabels: {}
+  podLabels:
+    elasticsearch-master-http-client: "true"
 
   # Setup how istiod Service is configured. See https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services
   ipFamilyPolicy: ""
@@ -206,6 +207,19 @@ _internal_defaults_do_not_set:
   # See https://istio.io/docs/reference/config/istio.mesh.v1alpha1/ for all available options
   meshConfig:
     enablePrometheusMerge: true
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    accessLogFormat: |
+      {
+        "timestamp": "%START_TIME%",
+        "source": "%DOWNSTREAM_DIRECT_REMOTE_ADDRESS%",
+        "method": "%REQ(:METHOD)%",
+        "url": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+        "response_code": "%RESPONSE_CODE%",
+        "response_flags": "%RESPONSE_FLAGS%",
+        "latency": "%DURATION%",
+        "upstream_service": "%UPSTREAM_HOST%"
+      }
 
   experimental:
     stableValidationPolicy: false
