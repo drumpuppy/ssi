@@ -55,6 +55,29 @@ resource "scaleway_vpc_private_network" "pvn" {
   project_id = var.scw_project_id
 }
 
+resource "scaleway_vpc_subnet" "private_subnet" {
+  name               = "k8s-private-subnet"
+  project_id         = var.scw_project_id
+  vpc_id             = scaleway_vpc_private_network.pvn.id
+  cidr               = "10.1.0.0/24"  # Plage d'adresses IP pour le sous-réseau privé
+  zone               = var.zone
+  gateway_ip         = "10.1.0.1"    # Adresse IP de la passerelle pour ce sous-réseau
+  service_type       = "private"
+  enable_vpn         = false
+}
+
+resource "scaleway_vpc_subnet" "public_subnet" {
+  name               = "k8s-public-subnet"
+  project_id         = var.scw_project_id
+  vpc_id             = scaleway_vpc_private_network.pvn.id
+  cidr               = "10.2.0.0/24"  # Plage d'adresses IP pour le sous-réseau public
+  zone               = var.zone
+  gateway_ip         = "10.2.0.1"    # Adresse IP de la passerelle pour ce sous-réseau
+  service_type       = "public"
+  enable_vpn         = false
+}
+
+
 # Kubernetes Cluster
 resource "scaleway_k8s_cluster" "cluster" {
   name        = "k8s-cluster"
