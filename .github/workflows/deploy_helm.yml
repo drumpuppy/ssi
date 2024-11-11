@@ -55,11 +55,11 @@ jobs:
           helm repo add elastic https://helm.elastic.co
           helm repo update
           if helm list -n elasticsearch | grep -q 'elasticsearch'; then
-            helm uninstall elasticsearch --namespace elasticsearch
+            helm uninstall elasticsearch --namespace default
           fi
           helm install elasticsearch elastic/elasticsearch \
             --create-namespace \
-            --namespace elasticsearch \
+            --namespace default \
             --values ./helm/values-elasticsearch.yaml
 
       - name: Deploy Prometheus with Helm
@@ -67,9 +67,21 @@ jobs:
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo update
           if helm list -n prometheus | grep -q 'prometheus'; then
-            helm uninstall prometheus --namespace prometheus
+            helm uninstall prometheus --namespace default
           fi
           helm install prometheus prometheus-community/prometheus \
             --create-namespace \
-            --namespace prometheus \
+            --namespace default \
             --values ./helm/values-prometheus.yaml
+
+      - name: Deploy Falco with Helm
+        run: |
+          helm repo add falcosecurity https://falcosecurity.github.io/charts
+          helm repo update
+          if helm list -n falco | grep -q 'falco'; then
+            helm uninstall falco --namespace default
+          fi
+          helm install falco falcosecurity/falco \
+            --create-namespace \
+            --namespace default \
+            --values ./helm/values-falco.yaml
