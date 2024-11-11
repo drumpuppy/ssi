@@ -52,7 +52,7 @@ jobs:
 
       - name: Uninstall All Helm Charts
         run: |
-          namespaces=("falco" "elasticsearch" "prometheus" "istio-system" "wazuh")
+          namespaces=("default" "falco" "elasticsearch" "prometheus" "istio-system" "wazuh")
           for ns in "${namespaces[@]}"; do
             if helm list -n $ns | grep -q $ns; then
               echo "Uninstalling charts in namespace $ns..."
