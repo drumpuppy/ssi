@@ -40,7 +40,8 @@ rbac:
   create: true
 
 # -- Add additional pod labels
-podLabels: {}
+podLabels:
+  elasticsearch-master-http-client: "true"
 
 # -- Set pod priorityClassName
 podPriorityClassName:
@@ -140,7 +141,8 @@ controller:
   # Annotations to add to the daemonset or deployment
   annotations: {}
   # -- Extra labels to add to the daemonset or deployment
-  labels: {}
+  labels:
+    elasticsearch-master-http-client: "true"
   daemonset:
     updateStrategy:
       # You can also customize maxUnavailable or minReadySeconds if you
@@ -389,7 +391,7 @@ collectors:
     # https://github.com/falcosecurity/charts/tree/master/charts/k8s-metacollector
     # When this option is disabled, Falco falls back to the container annotations to grab the metadata.
     # In such a case, only the ID, name, namespace, labels of the pod will be available.
-    enabled: false
+    enabled: true
     # --pluginRef is the OCI reference for the k8smeta plugin. It could be a full reference such as:
     # "ghcr.io/falcosecurity/plugins/plugin/k8smeta:0.1.0". Or just name + tag: k8smeta:0.1.0.
     pluginRef: "ghcr.io/falcosecurity/plugins/plugin/k8smeta:0.2.0"
@@ -834,7 +836,11 @@ falco:
   # -- When enabled, Falco will output alert messages and rules file
   # loading/validation results in JSON format, making it easier for downstream
   # programs to process and consume the data. By default, this option is disabled.
-  json_output: false
+  json_output: true
+  elasticsearch:
+    host: "elasticsearch-master.default.svc.cluster.local"
+    port: 9200
+    index: "falco-alerts"
 
   # [Stable] `json_include_output_property`
   #
@@ -953,11 +959,11 @@ falco:
   #
   # -- Send logs to an HTTP endpoint or webhook.
   http_output:
-    enabled: false
-    url: ""
+    enabled: true
+    url: "http://elasticsearch-master.default.svc.cluster.local:9200/falco-alerts"
     user_agent: "falcosecurity/falco"
     # -- Tell Falco to not verify the remote server.
-    insecure: false
+    insecure: true
     # -- Path to the CA certificate that can verify the remote server.
     ca_cert: ""
     # -- Path to a specific file that will be used as the CA certificate store.
@@ -1392,8 +1398,8 @@ falco:
   # todo: prometheus export option
   # todo: syscall_counters_enabled option
   metrics:
-    enabled: false
-    interval: 1h
+    enabled: true
+    interval: 15m
     output_rule: true
     # output_file: /tmp/falco_stats.jsonl
     rules_counters_enabled: true
