@@ -88,3 +88,40 @@ jobs:
           helm install filebeat elastic/filebeat \
             --namespace default \
             --values ./helm/values-filebeat.yaml
+
+      - name: Deploy Falco with Helm
+        run: |
+          helm repo add falcosecurity https://falcosecurity.github.io/charts
+          helm repo update
+          if helm list -n default | grep -q 'falco'; then
+            helm uninstall falco --namespace default
+          fi
+          helm install falco falcosecurity/falco \
+            --namespace default \
+            --values ./helm/values-falco.yaml
+
+      - name: Deploy Istio with Helm
+        run: |
+          helm repo add istio https://istio-release.storage.googleapis.com/charts
+          helm repo update
+          if helm list -n istio-system | grep -q 'istiod'; then
+            helm uninstall istiod --namespace istio-system
+          fi
+          kubectl create namespace istio-system || true
+          helm install istiod istio/istiod --namespace istio-system \
+            --values ./helm/values-istio.yaml
+          helm install istio-ingress istio/gateway --namespace istio-system \
+            --values ./helm/values-istio-ingress.yaml
+
+      - name: Deploy Prometheus with Helm
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          if helm list -n prometheus | grep -q 'prometheus'; then
+            helm uninstall prometheus --namespace default
+          fi
+          helm install prometheus prometheus-community/prometheus \
+            --namespace default \
+            --values ./helm/values-prometheus.yaml
+
+
