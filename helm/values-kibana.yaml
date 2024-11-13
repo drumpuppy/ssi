@@ -25,10 +25,11 @@ envFrom: []
 # A list of secrets and their paths to mount inside the pod
 # This is useful for mounting certificates for security and for mounting
 # the X-Pack license
-secretMounts:
-  - name: elasticsearch-cert
-    secretName: elasticsearch-master-certs
-    path: /usr/share/kibana/config/certs
+secretMounts: []
+#  - name: kibana-keystore
+#    secretName: kibana-keystore
+#    path: /usr/share/kibana/data/kibana.keystore
+#    subPath: kibana.keystore # optional
 
 hostAliases: []
 #- ip: "127.0.0.1"
@@ -50,13 +51,13 @@ podAnnotations: {}
 
 resources:
   requests:
-    cpu: "300m"
-    memory: "512Mi"
+    cpu: "1000m"
+    memory: "2Gi"
   limits:
     cpu: "1000m"
     memory: "2Gi"
 
-protocol: https
+protocol: http
 
 serverHost: "0.0.0.0"
 
@@ -151,8 +152,8 @@ ingress:
   #      - chart-example.local
 
 readinessProbe:
-  failureThreshold: 2
-  initialDelaySeconds: 60
+  failureThreshold: 3
+  initialDelaySeconds: 10
   periodSeconds: 10
   successThreshold: 3
   timeoutSeconds: 5
@@ -172,3 +173,4 @@ lifecycle: {}
 # postStart:
 #   exec:
 #     command: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
+
