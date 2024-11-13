@@ -89,6 +89,17 @@ jobs:
             --namespace default \
             --values ./helm/values-filebeat.yaml
 
+      - name: Deploy Prometheus with Helm
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          if helm list -n default | grep -q 'prometheus'; then
+            helm uninstall prometheus --namespace default
+          fi
+          helm install prometheus prometheus-community/prometheus \
+            --namespace default \
+            --values ./helm/values-prometheus.yaml
+
       - name: Deploy Falco with Helm
         run: |
           helm repo add falcosecurity https://falcosecurity.github.io/charts
@@ -99,6 +110,8 @@ jobs:
           helm install falco falcosecurity/falco \
             --namespace default \
             --values ./helm/values-falco.yaml
+            --set serviceMonitor.create=false  # Disable ServiceMonitor if Prometheus Operator is not installed
+
 
       - name: Deploy Istio with Helm
         run: |
@@ -113,15 +126,5 @@ jobs:
           helm install istio-ingress istio/gateway --namespace istio-system \
             --values ./helm/values-istio-ingress.yaml
 
-      - name: Deploy Prometheus with Helm
-        run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-          if helm list -n prometheus | grep -q 'prometheus'; then
-            helm uninstall prometheus --namespace default
-          fi
-          helm install prometheus prometheus-community/prometheus \
-            --namespace default \
-            --values ./helm/values-prometheus.yaml
 
 
