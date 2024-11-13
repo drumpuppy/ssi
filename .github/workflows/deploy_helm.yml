@@ -62,40 +62,29 @@ jobs:
             --namespace default \
             --values ./helm/values-elasticsearch.yaml
 
-      - name: Deploy Prometheus with Helm
+      - name: Deploy Kibana with Helm
         run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-          if helm list -n prometheus | grep -q 'prometheus'; then
-            helm uninstall prometheus --namespace default
+          if helm list -n default | grep -q 'kibana'; then
+            helm uninstall kibana --namespace default
           fi
-          helm install prometheus prometheus-community/prometheus \
-            --create-namespace \
+          helm install kibana elastic/kibana \
             --namespace default \
-            --values ./helm/values-prometheus.yaml
+            --values ./helm/values-kibana.yaml
 
-      - name: Deploy Falco with Helm
+      - name: Deploy Logstash with Helm
         run: |
-          helm repo add falcosecurity https://falcosecurity.github.io/charts
-          helm repo update
-          if helm list -n falco | grep -q 'falco'; then
-            helm uninstall falco --namespace default
+          if helm list -n default | grep -q 'logstash'; then
+            helm uninstall logstash --namespace default
           fi
-          helm install falco falcosecurity/falco \
-            --create-namespace \
+          helm install logstash elastic/logstash \
             --namespace default \
+            --values ./helm/values-logstash.yaml
 
-      - name: Deploy Istio with Helm
+      - name: Deploy Filebeat with Helm
         run: |
-          helm repo add istio https://istio-release.storage.googleapis.com/charts
-          helm repo update
-          if helm list -n istio-system | grep -q 'istiod'; then
-            helm uninstall istiod --namespace istio-system
-            helm uninstall istio-ingress --namespace istio-system
+          if helm list -n default | grep -q 'filebeat'; then
+            helm uninstall filebeat --namespace default
           fi
-          kubectl get namespace istio-system || kubectl create namespace istio-system
-          helm install istiod istio/istiod --namespace istio-system \
-            --values ./helm/values-istio.yaml
-          helm install istio-ingress istio/gateway --namespace istio-system \
-            --values ./helm/values-istio.yaml
-            --values ./helm/values-falco.yaml
+          helm install filebeat elastic/filebeat \
+            --namespace default \
+            --values ./helm/values-filebeat.yaml
