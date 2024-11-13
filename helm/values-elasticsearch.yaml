@@ -4,7 +4,7 @@ nodeGroup: "master"
 
 # The service that non master groups will try to connect to when joining the cluster
 # This should be set to clusterName + "-" + nodeGroup for your master group
-masterService: "elasticsearch-master"
+masterService: ""
 
 # Elasticsearch roles that will be applied to this nodeGroup
 # These will be set as environment variables. E.g. node.roles=master
@@ -21,28 +21,19 @@ roles:
   - remote_cluster_client
   - transform
 
-replicas: 2
-minimumMasterNodes: 2
+replicas: 1
+minimumMasterNodes: 1
 
 esMajorVersion: ""
 
 # Allows you to add any config files in /usr/share/elasticsearch/config/
 # such as elasticsearch.yml and log4j2.properties
-esConfig:
-  elasticsearch.yml: |
-    cluster.initial_master_nodes: 
-      - elasticsearch-master-0
-      - elasticsearch-master-1
-    xpack.security.enabled: true
-    xpack.security.transport.ssl.enabled: true
-    xpack.security.http.ssl.enabled: true
-    xpack.security.http.ssl.certificate: "/usr/share/elasticsearch/config/certs/tls.crt"
-    xpack.security.http.ssl.key: "/usr/share/elasticsearch/config/certs/tls.key"
-    xpack.security.http.ssl.certificate_authorities: [ "/usr/share/elasticsearch/config/certs/ca.crt" ]
-    discovery.seed_hosts: ["elasticsearch-master"]
-
-
-
+esConfig: {}
+#  elasticsearch.yml: |
+#    key:
+#      nestedkey: value
+#  log4j2.properties: |
+#    key = value
 
 createCert: true
 
@@ -72,10 +63,11 @@ secret:
 # A list of secrets and their paths to mount inside the pod
 # This is useful for mounting certificates for security and for mounting
 # the X-Pack license
-secretMounts:
-  - name: elasticsearch-certs
-    secretName: elasticsearch-master-certs
-    path: /usr/share/elasticsearch/config/certs
+secretMounts: []
+#  - name: elastic-certificates
+#    secretName: elastic-certificates
+#    path: /usr/share/elasticsearch/config/certs
+#    defaultMode: 0755
 
 hostAliases: []
 #- ip: "127.0.0.1"
@@ -97,11 +89,11 @@ esJavaOpts: "" # example: "-Xmx1g -Xms1g"
 
 resources:
   requests:
-    cpu: "500m"
-    memory: "1024Mi"
+    cpu: "1000m"
+    memory: "2Gi"
   limits:
     cpu: "1000m"
-    memory: "3Gi"
+    memory: "2Gi"
 
 initResources: {}
 # limits:
@@ -117,7 +109,7 @@ volumeClaimTemplate:
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
-      storage: 40Gi
+      storage: 30Gi
 
 rbac:
   create: false
@@ -240,17 +232,11 @@ terminationGracePeriod: 120
 sysctlVmMaxMapCount: 262144
 
 readinessProbe:
-  exec:
-    command: [
-      "bash", "-c",
-      "curl -k -u elastic:$(ELASTIC_PASSWORD) https://127.0.0.1:9200/_cluster/health?wait_for_status=green&timeout=50s"
-    ]
   failureThreshold: 3
-  initialDelaySeconds: 120
+  initialDelaySeconds: 10
   periodSeconds: 10
-  successThreshold: 1
-  timeoutSeconds: 15
-
+  successThreshold: 3
+  timeoutSeconds: 5
 
 # https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-health.html#request-params wait_for_status
 clusterHealthCheckParams: "wait_for_status=green&timeout=1s"
@@ -321,7 +307,7 @@ networkPolicy:
   ## elasticsearch-master-transport-client: "true"
 
   http:
-    enabled: true
+    enabled: false
     ## if explicitNamespacesSelector is not set or set to {}, only client Pods being in the networkPolicy's namespace
     ## and matching all criteria can reach the DB.
     ## But sometimes, we want the Pods to be accessible to clients from other namespaces, in this case, we can use this
@@ -349,7 +335,7 @@ networkPolicy:
 
   transport:
     ## Note that all Elasticsearch Pods can talk to themselves using transport port even if enabled.
-    enabled: true
+    enabled: false
     # explicitNamespacesSelector:
     #   matchLabels:
     #     role: frontend
@@ -368,3 +354,4 @@ networkPolicy:
 
 tests:
   enabled: true
+
