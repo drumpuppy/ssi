@@ -53,13 +53,14 @@ jobs:
       - name: Uninstall All Helm Charts
         continue-on-error: true
         run: |
-          namespaces=("default" "istio-system")
-          for ns in "${namespaces[@]}"; do
-            if helm list -n $ns | grep -q $ns; then
-              echo "Uninstalling charts in namespace $ns..."
-              helm uninstall $(helm list -n $ns -q) --namespace $ns || true
-            fi
-          done
+          helm uninstall prometheus --namespace default
+          helm uninstall prometheus-operator --namespace default
+          helm uninstall logstash --namespace default
+          helm uninstall filebeat --namespace default
+          helm uninstall elasticsearch --namespace default
+          helm uninstall istio-ingress --namespace istio-system
+          helm uninstall istiod --namespace istio-system
+          helm uninstall kibana --namespace default
       
       - name: Clean Up Kibana Resources
         continue-on-error: true
@@ -72,6 +73,38 @@ jobs:
           kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
+      
+      - name: Detach and Delete All Volumes
+        run: |
+          # Get all volumes in the project
+          volume_ids=$(scw instance volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
+          if [ -z "$volume_ids" ]; then
+            echo "No block storage volumes found."
+          else
+            for volume_id in $volume_ids; do
+              # Check if the volume is attached to a server
+              attached_server=$(scw instance volume get "$volume_id" --output json | jq -r '.server.id')
+              if [ "$attached_server" != "null" ]; then
+                echo "Detaching volume $volume_id from server $attached_server..."
+                scw instance volume detach "$volume_id" || echo "Failed to detach volume $volume_id from server $attached_server."
+              fi
+              # Attempt to delete the volume
+              echo "Deleting volume $volume_id..."
+              scw instance volume delete "$volume_id" || echo "Failed to delete volume $volume_id. It may be in use."
+            done
+          fi
+
+      - name: Delete All Block Storage Volumes
+        run: |
+          volume_ids=$(scw block volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
+          if [ -z "$volume_ids" ]; then
+            echo "No block storage volumes found."
+          else
+            for volume_id in $volume_ids; do
+              echo "Deleting volume $volume_id..."
+              scw block volume delete volume-id=$volume_id zone=fr-par-1 || echo "Failed to delete volume $volume_id. It may be in use."
+            done
+          fi
 
       - name: Deploy Elasticsearch with Helm
         run: |
