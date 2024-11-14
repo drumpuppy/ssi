@@ -114,37 +114,20 @@ jobs:
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
       
-      - name: Detach and Delete All Volumes
+      - name: List and Delete All PVCs
         run: |
-          # Get all volumes in the project
-          volume_ids=$(scw instance volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
-          if [ -z "$volume_ids" ]; then
-            echo "No block storage volumes found."
+          # Get all PVC names in the default namespace
+          pvc_names=$(kubectl get pvc -o jsonpath='{.items[*].metadata.name}')
+          
+          if [ -z "$pvc_names" ]; then
+            echo "No PVCs found."
           else
-            for volume_id in $volume_ids; do
-              # Check if the volume is attached to a server
-              attached_server=$(scw instance volume get "$volume_id" --output json | jq -r '.server.id')
-              if [ "$attached_server" != "null" ]; then
-                echo "Detaching volume $volume_id from server $attached_server..."
-                scw instance volume detach "$volume_id" || echo "Failed to detach volume $volume_id from server $attached_server."
-              fi
-              # Attempt to delete the volume
-              echo "Deleting volume $volume_id..."
-              scw instance volume delete "$volume_id" || echo "Failed to delete volume $volume_id. It may be in use."
+            for pvc_name in $pvc_names; do
+              echo "Deleting PVC $pvc_name..."
+              kubectl delete pvc "$pvc_name" || echo "Failed to delete PVC $pvc_name. It may be in use."
             done
           fi
 
-      - name: Delete All Block Storage Volumes
-        run: |
-          volume_ids=$(scw block volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
-          if [ -z "$volume_ids" ]; then
-            echo "No block storage volumes found."
-          else
-            for volume_id in $volume_ids; do
-              echo "Deleting volume $volume_id..."
-              scw block volume delete volume-id=$volume_id zone=fr-par-1 || echo "Failed to delete volume $volume_id. It may be in use."
-            done
-          fi
 
       - name: Deploy Elasticsearch with Helm
         run: |
