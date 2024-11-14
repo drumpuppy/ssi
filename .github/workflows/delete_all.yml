@@ -50,36 +50,57 @@ jobs:
           fi
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      - name: Detach and Delete All Volumes
-        run: |
-          # Get all volumes in the project
-          volume_ids=$(scw instance volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
-          if [ -z "$volume_ids" ]; then
-            echo "No block storage volumes found."
-          else
-            for volume_id in $volume_ids; do
-              # Check if the volume is attached to a server
-              attached_server=$(scw instance volume get "$volume_id" --output json | jq -r '.server.id')
-              if [ "$attached_server" != "null" ]; then
-                echo "Detaching volume $volume_id from server $attached_server..."
-                scw instance volume detach "$volume_id" || echo "Failed to detach volume $volume_id from server $attached_server."
-              fi
-              # Attempt to delete the volume
-              echo "Deleting volume $volume_id..."
-              scw instance volume delete "$volume_id" || echo "Failed to delete volume $volume_id. It may be in use."
-            done
-          fi
-    
       - name: Uninstall All Helm Charts
         continue-on-error: true
         run: |
-          namespaces=("default" "istio-system")
-          for ns in "${namespaces[@]}"; do
-            if helm list -n $ns | grep -q $ns; then
-              echo "Uninstalling charts in namespace $ns..."
-              helm uninstall $(helm list -n $ns -q) --namespace $ns || true
-            fi
-          done
+          echo "Uninstalling Helm charts..."
+          if helm list -n default | grep -q 'prometheus'; then
+            helm uninstall prometheus --namespace default
+          else
+            echo "Prometheus not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'prometheus-operator'; then
+            helm uninstall prometheus-operator --namespace default
+          else
+            echo "Prometheus Operator not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'logstash'; then
+            helm uninstall logstash --namespace default
+          else
+            echo "Logstash not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'filebeat'; then
+            helm uninstall filebeat --namespace default
+          else
+            echo "Filebeat not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'elasticsearch'; then
+            helm uninstall elasticsearch --namespace default
+          else
+            echo "Elasticsearch not installed in the default namespace."
+          fi
+      
+          if helm list -n istio-system | grep -q 'istio-ingress'; then
+            helm uninstall istio-ingress --namespace istio-system
+          else
+            echo "Istio Ingress not installed in the istio-system namespace."
+          fi
+      
+          if helm list -n istio-system | grep -q 'istiod'; then
+            helm uninstall istiod --namespace istio-system
+          else
+            echo "Istiod not installed in the istio-system namespace."
+          fi
+      
+          if helm list -n default | grep -q 'kibana'; then
+            helm uninstall kibana --namespace default
+          else
+            echo "Kibana not installed in the default namespace."
+          fi
       
       - name: Clean Up Kibana Resources
         continue-on-error: true
@@ -92,8 +113,20 @@ jobs:
           kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
-
-
+      
+      - name: List and Delete All PVCs
+        run: |
+          # Get all PVC names in the default namespace
+          pvc_names=$(kubectl get pvc -o jsonpath='{.items[*].metadata.name}')
+          
+          if [ -z "$pvc_names" ]; then
+            echo "No PVCs found."
+          else
+            for pvc_name in $pvc_names; do
+              echo "Deleting PVC $pvc_name..."
+              kubectl delete pvc "$pvc_name" || echo "Failed to delete PVC $pvc_name. It may be in use."
+            done
+          fi
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
@@ -116,20 +149,7 @@ jobs:
           TF_VAR_scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
           TF_VAR_scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
           TF_VAR_scw_project_id: ${{ secrets.SCW_PROJECT_ID }}
-          TF_LOG: DEBUG
         run: terraform destroy -auto-approve
-
-      - name: Delete All Block Storage Volumes
-        run: |
-          volume_ids=$(scw block volume list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[].id')
-          if [ -z "$volume_ids" ]; then
-            echo "No block storage volumes found."
-          else
-            for volume_id in $volume_ids; do
-              echo "Deleting volume $volume_id..."
-              scw block volume delete volume-id=$volume_id zone=fr-par-1 || echo "Failed to delete volume $volume_id. It may be in use."
-            done
-          fi
 
       
 
