@@ -118,16 +118,23 @@ jobs:
             --namespace default \
             --values ./helm/values-prometheus.yaml
 
-      - name: Deploy Falco with Helm
+      - name: Install Falco CRDs
         run: |
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo update
+          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-rules.yaml
+          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-rules-custom.yaml
+          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-suppression.yaml
+          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-event.yaml
+
+      - name: Deploy Falco with Helm
+        run: |
           if helm list -n default | grep -q 'falco'; then
             helm uninstall falco --namespace default
           fi
           helm install falco falcosecurity/falco \
             --namespace default \
-            --values ./helm/values-falco.yaml
+            --values ./helm/values-falco.yaml \
             --set serviceMonitor.create=false  # Disable ServiceMonitor if Prometheus Operator is not installed
 
 
