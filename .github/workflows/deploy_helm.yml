@@ -122,10 +122,11 @@ jobs:
         run: |
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo update
-          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-rules.yaml
-          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-rules-custom.yaml
-          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-suppression.yaml
-          kubectl apply -f https://raw.githubusercontent.com/falcosecurity/charts/master/falco/crds/falco-event.yaml
+          helm install falco-crds falcosecurity/falco \
+            --namespace default \
+            --set installCRDs=true \
+            --set serviceMonitor.create=false \
+            --dry-run -o yaml | kubectl apply -f -
 
       - name: Deploy Falco with Helm
         run: |
@@ -135,7 +136,7 @@ jobs:
           helm install falco falcosecurity/falco \
             --namespace default \
             --values ./helm/values-falco.yaml \
-            --set serviceMonitor.create=false  # Disable ServiceMonitor if Prometheus Operator is not installed
+            --set serviceMonitor.create=true
 
 
       - name: Deploy Istio with Helm
