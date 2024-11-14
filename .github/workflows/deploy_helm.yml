@@ -50,6 +50,18 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
+      - name: Deploy Elasticsearch with Helm
+        run: |
+          helm repo add elastic https://helm.elastic.co
+          helm repo update
+          if helm list -n elasticsearch | grep -q 'elasticsearch'; then
+            helm uninstall elasticsearch --namespace default
+          fi
+          helm install elasticsearch elastic/elasticsearch \
+            --create-namespace \
+            --namespace default \
+            --values ./helm/values-elasticsearch.yaml
+
       - name: Wait for Elasticsearch to be ready
         run: |
           echo "Waiting for Elasticsearch to be ready..."
