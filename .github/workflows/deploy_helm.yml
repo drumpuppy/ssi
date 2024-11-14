@@ -50,17 +50,23 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      - name: Deploy Elasticsearch with Helm
+      - name: Wait for Elasticsearch to be ready
         run: |
-          helm repo add elastic https://helm.elastic.co
-          helm repo update
-          if helm list -n elasticsearch | grep -q 'elasticsearch'; then
-            helm uninstall elasticsearch --namespace default
+          echo "Waiting for Elasticsearch to be ready..."
+          for i in {1..30}; do
+            if kubectl get pods -n default -l app=elasticsearch-master -o jsonpath='{.items[0].status.containerStatuses[0].ready}' | grep -q 'true'; then
+              echo "Elasticsearch is running."
+              break
+            fi
+            echo "Elasticsearch is not ready. Retrying in 10 seconds..."
+            sleep 10
+          done
+          # If Elasticsearch is not ready after 5 minutes, exit with an error
+          if ! kubectl get pods -n default -l app=elasticsearch-master -o jsonpath='{.items[0].status.containerStatuses[0].ready}' | grep -q 'true'; then
+            echo "Error: Elasticsearch did not start successfully within the timeout period."
+            exit 1
           fi
-          helm install elasticsearch elastic/elasticsearch \
-            --create-namespace \
-            --namespace default \
-            --values ./helm/values-elasticsearch.yaml
+
 
       - name: Deploy Kibana with Helm
         run: |
