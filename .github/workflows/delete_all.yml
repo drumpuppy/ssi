@@ -69,6 +69,30 @@ jobs:
               scw instance volume delete "$volume_id" || echo "Failed to delete volume $volume_id. It may be in use."
             done
           fi
+    
+      - name: Uninstall All Helm Charts
+        run: |
+          namespaces=("default" "istio-system")
+          for ns in "${namespaces[@]}"; do
+            if helm list -n $ns | grep -q $ns; then
+              echo "Uninstalling charts in namespace $ns..."
+              helm uninstall $(helm list -n $ns -q) --namespace $ns || true
+            fi
+          done
+      
+      - name: Clean Up Kibana Resources
+        continue-on-error: true
+        run: |
+          echo "Attempting to clean up Kibana resources..."
+          kubectl delete sa post-delete-kibana-kibana -n default || echo "ServiceAccount already deleted or not found"
+          kubectl delete cm kibana-kibana-helm-scripts -n default || echo "ConfigMap already deleted or not found"
+          kubectl delete job post-delete-kibana-kibana -n default || echo "Job already deleted or not found"
+          kubectl delete role post-delete-kibana-kibana -n default || echo "Role already deleted or not found"
+          kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
+          kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
+          kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
+
+
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
