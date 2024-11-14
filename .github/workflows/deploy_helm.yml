@@ -201,8 +201,17 @@ jobs:
 
       - name: Deploy Prometheus Operator
         run: |
-          helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
-
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default \
+            --set prometheusOperator.nodeExporter.enabled=true \
+            --set prometheusOperator.nodeExporter.service.port=9101 \
+            --set prometheusOperator.nodeExporter.tolerations[0].key="node.kubernetes.io/not-ready" \
+            --set prometheusOperator.nodeExporter.tolerations[0].operator="Exists" \
+            --set prometheusOperator.nodeExporter.tolerations[0].effect="NoExecute" \
+            --set prometheusOperator.nodeExporter.tolerations[1].key="node.kubernetes.io/unreachable" \
+            --set prometheusOperator.nodeExporter.tolerations[1].operator="Exists" \
+            --set prometheusOperator.nodeExporter.tolerations[1].effect="NoExecute"
 
       - name: Deploy Falco
         run: |
