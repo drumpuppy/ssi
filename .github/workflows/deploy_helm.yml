@@ -102,6 +102,18 @@ jobs:
             echo "Istiod not installed in the istio-system namespace."
           fi
       
+          if helm list -n default | grep -q 'ingress-nginx'; then
+            helm uninstall ingress-nginx --namespace default
+          else
+            echo "Ingress-nginx not installed in the default namespace."
+          fi
+
+          if helm list -n default | grep -q 'iris'; then
+            helm uninstall iris --namespace default
+          else
+            echo "Iris not installed in the default namespace."
+          fi
+
           if helm list -n default | grep -q 'kibana'; then
             helm uninstall kibana --namespace default
           else
@@ -135,7 +147,7 @@ jobs:
           fi
 
 
-      - name: Deploy Elasticsearch with Helm
+      - name: Deploy Elasticsearch
         run: |
           helm repo add elastic https://helm.elastic.co
           helm repo update
@@ -161,26 +173,25 @@ jobs:
             exit 1
           fi
 
-
-      - name: Deploy Kibana with Helm
+      - name: Deploy Kibana
         run: |
           helm install kibana elastic/kibana \
             --namespace default \
             --values ./helm/values-kibana.yaml
 
-      - name: Deploy Logstash with Helm
+      - name: Deploy Logstash
         run: |
           helm install logstash elastic/logstash \
             --namespace default \
             --values ./helm/values-logstash.yaml
 
-      - name: Deploy Filebeat with Helm
+      - name: Deploy Filebeat
         run: |
           helm install filebeat elastic/filebeat \
             --namespace default \
             --values ./helm/values-filebeat.yaml
 
-      - name: Deploy Prometheus with Helm
+      - name: Deploy Prometheus
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo update
@@ -193,21 +204,29 @@ jobs:
           helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
 
 
-      - name: Deploy Falco with Helm
+      - name: Deploy Falco
         run: |
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo update
           helm install falco falcosecurity/falco --namespace default -f ./helm/values-falco.yaml
 
-      - name: Deploy Istio with Helm
+      - name: Deploy Istio
         run: |
           helm repo add istio https://istio-release.storage.googleapis.com/charts
           helm repo update
           kubectl create namespace istio-system || true
-          helm install istiod istio/istiod --namespace istio-system \
-            --values ./helm/values-istio.yaml
-          helm install istio-ingress istio/gateway --namespace istio-system \
-            --values ./helm/values-istio-ingress.yaml
+          helm install istiod istio/istiod --namespace istio-system
+          helm install istio-ingress istio/gateway --namespace istio-system
+
+      - name: Deploy IRIS with nginx ingress
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm install ingress-nginx ingress-nginx/ingress-nginx -n default
+          git clone https://github.com/dfir-iris/iris-web.git
+          cd iris-web/deploy/kubernetes/
+          helm install iris charts/ --values ../../../helm/values-iris.yaml -n default
+
 
 
 
