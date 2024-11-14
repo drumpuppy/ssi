@@ -115,7 +115,8 @@ jobs:
           fi
       
           if helm list -n default | grep -q 'kibana'; then
-            helm uninstall kibana --namespace default
+            echo "Uninstalling Kibana in the background..."
+            helm uninstall kibana --namespace default --wait=false &
           else
             echo "Kibana not installed in the default namespace."
           fi
