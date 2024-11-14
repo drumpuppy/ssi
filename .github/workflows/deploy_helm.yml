@@ -190,7 +190,7 @@ jobs:
       - name: Deploy Falco with Helm
         run: |
           kubectl create namespace falco || true
-          helm install falco falcosecurity/falco --namespace falco -f values-falco.yaml
+          helm install falco falcosecurity/falco --namespace default -f values-falco.yaml
 
       - name: Deploy Istio with Helm
         run: |
