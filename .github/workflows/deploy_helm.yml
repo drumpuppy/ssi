@@ -53,14 +53,54 @@ jobs:
       - name: Uninstall All Helm Charts
         continue-on-error: true
         run: |
-          helm uninstall prometheus --namespace default
-          helm uninstall prometheus-operator --namespace default
-          helm uninstall logstash --namespace default
-          helm uninstall filebeat --namespace default
-          helm uninstall elasticsearch --namespace default
-          helm uninstall istio-ingress --namespace istio-system
-          helm uninstall istiod --namespace istio-system
-          helm uninstall kibana --namespace default
+          echo "Uninstalling Helm charts..."
+          if helm list -n default | grep -q 'prometheus'; then
+            helm uninstall prometheus --namespace default
+          else
+            echo "Prometheus not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'prometheus-operator'; then
+            helm uninstall prometheus-operator --namespace default
+          else
+            echo "Prometheus Operator not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'logstash'; then
+            helm uninstall logstash --namespace default
+          else
+            echo "Logstash not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'filebeat'; then
+            helm uninstall filebeat --namespace default
+          else
+            echo "Filebeat not installed in the default namespace."
+          fi
+      
+          if helm list -n default | grep -q 'elasticsearch'; then
+            helm uninstall elasticsearch --namespace default
+          else
+            echo "Elasticsearch not installed in the default namespace."
+          fi
+      
+          if helm list -n istio-system | grep -q 'istio-ingress'; then
+            helm uninstall istio-ingress --namespace istio-system
+          else
+            echo "Istio Ingress not installed in the istio-system namespace."
+          fi
+      
+          if helm list -n istio-system | grep -q 'istiod'; then
+            helm uninstall istiod --namespace istio-system
+          else
+            echo "Istiod not installed in the istio-system namespace."
+          fi
+      
+          if helm list -n default | grep -q 'kibana'; then
+            helm uninstall kibana --namespace default
+          else
+            echo "Kibana not installed in the default namespace."
+          fi
       
       - name: Clean Up Kibana Resources
         continue-on-error: true
