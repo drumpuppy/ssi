@@ -95,6 +95,12 @@ jobs:
           else
             echo "Istiod not installed in the istio-system namespace."
           fi
+
+          if helm list -n default | grep -q 'falco'; then
+            helm uninstall falco --namespace default
+          else
+            echo "Falco not installed in the default namespace."
+          fi
       
           if helm list -n default | grep -q 'kibana'; then
             helm uninstall kibana --namespace default
