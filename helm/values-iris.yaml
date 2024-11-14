@@ -32,9 +32,9 @@ postgres:
    name: postgres
    ## @param postgres.image PostgreSQL Image
    ##
-   image: <postgres_image>
+   image: postgres
    ## @param postgres.tag PostgreSQL Tag
-   tag: <tag>
+   tag: "13"
    ## @param postgres.imagePullPolicy PostgreSQL PullPolicy
    ##
    imagePullPolicy: "IfNotPresent"
@@ -68,10 +68,10 @@ irisapp:
    name: iriswebapp-app
    ## @param irisapp.image Iris Frontend Image
    ##
-   image: <irisapp_image>
+   image: ghcr.io/dfir-iris/iriswebapp_app
    ## @param irisapp.tag Iris Frontend Tag
    ##
-   tag: <tag>
+   tag: v2.4.15
    ## @param irisapp.imagePullPolicy Iris Frontend imagePullPolicy
    ##
    imagePullPolicy: "IfNotPresent"
@@ -95,12 +95,12 @@ irisapp:
    POSTGRES_ADMIN_USER: raptor
    POSTGRES_ADMIN_PASSWORD: postgres
    POSTGRES_PORT: 5432
-   POSTGRES_SERVER: postgres.<name_space>.svc.cluster.local
-   IRIS_SECRET_KEY: AVerySuperSecretKey-SoNotThisOne
-   IRIS_SECURITY_PASSWORD_SALT: ARandomSalt-NotThisOneEither
+   POSTGRES_SERVER: postgres.default.svc.cluster.local
+   IRIS_SECRET_KEY: "generated-secret-key"
+   IRIS_SECURITY_PASSWORD_SALT: "SecurePass123"
    IRIS_ADM_USERNAME: administrator
    # Must be 12 characters minimum and contains a capital letter and a number. 
-   IRIS_ADM_PASSWORD: Hello12345!
+   IRIS_ADM_PASSWORD:  iris
    DB_RETRY_COUNT: 5
    DB_RETRY_DELAY: 5
    INTERFACE_HTTPS_PORT: 443
@@ -116,10 +116,10 @@ irisworker:
    name: iriswebapp-worker
    ## @param irisworker.image Iris Backend Image
    ##
-   image: <irisworker_image>
+   image: ghcr.io/dfir-iris/iriswebapp_app
    ## @param irisworker.tag Iris Backend Tag
    ##
-   tag: <tag>
+   tag: v2.4.15
    ## @param irisworker.imagePullPolicy Iris Backend imagePullPolicy
    ##
    imagePullPolicy: "IfNotPresent"
@@ -134,14 +134,14 @@ irisworker:
    POSTGRES_ADMIN_USER: raptor
    POSTGRES_ADMIN_PASSWORD: postgres
    POSTGRES_PORT: 5432
-   POSTGRES_SERVER: postgres.<name_space>.svc.cluster.local
-   IRIS_SECRET_KEY: AVerySuperSecretKey-SoNotThisOne
-   IRIS_SECURITY_PASSWORD_SALT: ARandomSalt-NotThisOneEither
+   POSTGRES_SERVER: postgres.default.svc.cluster.local
+   IRIS_SECRET_KEY: "generated-secret-key"
+   IRIS_SECURITY_PASSWORD_SALT: "generated-salt"
 
 ## @section Nginx Ingress Configuration
 ##
 ingress:
-  enabled: true
+  enabled: false
   name: iris-ingress
   className: nginx
   annotations:
@@ -150,13 +150,14 @@ ingress:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
-    - host: <host_name>
+    - host: iris.example.com
       paths:
-        - path: /(.*)
-          pathType: ImplementationSpecific
+        - path: /
+          pathType: Prefix
           serviceName: iriswebapp-app
           servicePort: 8000
   tls:
     - secretName: iris-ingress-tls-secret
       hosts:
-        - <host_name>        
+        - iris.example.com        
+
