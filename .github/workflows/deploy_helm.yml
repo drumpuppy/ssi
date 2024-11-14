@@ -50,6 +50,29 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
+      - name: Uninstall All Helm Charts
+        continue-on-error: true
+        run: |
+          namespaces=("default" "istio-system")
+          for ns in "${namespaces[@]}"; do
+            if helm list -n $ns | grep -q $ns; then
+              echo "Uninstalling charts in namespace $ns..."
+              helm uninstall $(helm list -n $ns -q) --namespace $ns || true
+            fi
+          done
+      
+      - name: Clean Up Kibana Resources
+        continue-on-error: true
+        run: |
+          echo "Attempting to clean up Kibana resources..."
+          kubectl delete sa post-delete-kibana-kibana -n default || echo "ServiceAccount already deleted or not found"
+          kubectl delete cm kibana-kibana-helm-scripts -n default || echo "ConfigMap already deleted or not found"
+          kubectl delete job post-delete-kibana-kibana -n default || echo "Job already deleted or not found"
+          kubectl delete role post-delete-kibana-kibana -n default || echo "Role already deleted or not found"
+          kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
+          kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
+          kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
+
       - name: Deploy Elasticsearch with Helm
         run: |
           helm repo add elastic https://helm.elastic.co
@@ -118,36 +141,30 @@ jobs:
             --namespace default \
             --values ./helm/values-prometheus.yaml
 
-      - name: Install Falco CRDs
+      - name: Deploy Prometheus Operator
         run: |
-          helm repo add falcosecurity https://falcosecurity.github.io/charts
-          helm repo update
-          helm install falco-crds falcosecurity/falco \
-            --namespace default \
-            --set installCRDs=true \
-            --set serviceMonitor.create=false \
-            --dry-run -o yaml | kubectl apply -f -
+          if helm list -n default | grep -q 'prometheus-operator'; then
+            helm uninstall prometheus-operator --namespace default
+          fi
+          helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
 
 
       - name: Deploy Falco with Helm
         run: |
-          if helm list -n default | grep -q 'falco'; then
-            helm uninstall falco --namespace default
+          kubectl create namespace falco || true
+          if helm list -n falco | grep -q 'falco'; then
+            helm uninstall falco --namespace falco
           fi
-          helm install falco falcosecurity/falco \
-            --namespace default \
-            --values ./helm/values-falco.yaml \
-            --set serviceMonitor.create=true
-
+          helm install falco falcosecurity/falco --namespace falco -f values-falco.yaml
 
       - name: Deploy Istio with Helm
         run: |
           helm repo add istio https://istio-release.storage.googleapis.com/charts
           helm repo update
+          kubectl create namespace istio-system || true
           if helm list -n istio-system | grep -q 'istiod'; then
             helm uninstall istiod --namespace istio-system
           fi
-          kubectl create namespace istio-system || true
           helm install istiod istio/istiod --namespace istio-system \
             --values ./helm/values-istio.yaml
           helm install istio-ingress istio/gateway --namespace istio-system \
