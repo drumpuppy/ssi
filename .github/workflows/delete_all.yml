@@ -50,16 +50,6 @@ jobs:
           fi
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      - name: Uninstall All Helm Charts
-        run: |
-          namespaces=("default" "falco" "elasticsearch" "prometheus" "istio-system" "wazuh")
-          for ns in "${namespaces[@]}"; do
-            if helm list -n $ns | grep -q $ns; then
-              echo "Uninstalling charts in namespace $ns..."
-              helm uninstall $(helm list -n $ns -q) --namespace $ns
-            fi
-          done
-
       - name: Detach and Delete All Volumes
         run: |
           # Get all volumes in the project
