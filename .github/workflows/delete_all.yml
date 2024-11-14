@@ -71,6 +71,7 @@ jobs:
           fi
     
       - name: Uninstall All Helm Charts
+        continue-on-error: true
         run: |
           namespaces=("default" "istio-system")
           for ns in "${namespaces[@]}"; do
