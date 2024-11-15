@@ -208,7 +208,7 @@ jobs:
           helm repo update
           helm install falco falcosecurity/falco --namespace default -f ./helm/values-falco.yaml
 
-      - name: Deploy IRIS with nginx ingress
+      - name: Deploy IRIS
         run: |
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
           helm repo update        
