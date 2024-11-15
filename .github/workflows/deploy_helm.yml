@@ -216,9 +216,7 @@ jobs:
       - name: Deploy IRIS with nginx ingress
         run: |
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-          helm repo update
-          helm install ingress-nginx ingress-nginx/ingress-nginx -n default
-          sleep 20          
+          helm repo update        
           git clone https://github.com/dfir-iris/iris-web.git
           cd iris-web/deploy/kubernetes/
           helm install iris charts/ --values ../../../helm/values-iris.yaml -n default
