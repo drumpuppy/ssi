@@ -89,13 +89,7 @@ jobs:
           else
             echo "Elasticsearch not installed in the default namespace."
           fi
-      
-          if helm list -n istio-system | grep -q 'istio-ingress'; then
-            helm uninstall istio-ingress --namespace istio-system
-          else
-            echo "Istio Ingress not installed in the istio-system namespace."
-          fi
-      
+            
           if helm list -n istio-system | grep -q 'istiod'; then
             helm uninstall istiod --namespace istio-system
           else
@@ -108,6 +102,7 @@ jobs:
           else
             echo "Ingress-nginx not installed in the default namespace."
           fi
+          
           if helm list -n default | grep -q 'iris'; then
             helm uninstall iris --namespace default
           else
@@ -226,8 +221,7 @@ jobs:
           helm repo add istio https://istio-release.storage.googleapis.com/charts
           helm repo update
           kubectl create namespace istio-system || true
-          helm install istiod istio/istiod --namespace istio-system
-          helm install istio-ingress istio/gateway --namespace istio-system
+          helm install istiod istio/istiod --namespace istio-system -f ./helm/values-istio.yaml
 
 
 
