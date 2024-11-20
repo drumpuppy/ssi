@@ -98,6 +98,7 @@ resource "scaleway_k8s_pool" "pool" {
   }
 }
 
+
 # Load Balancer
 resource "scaleway_lb" "lb" {
   name                    = "k8s-lb"
@@ -119,22 +120,4 @@ resource "scaleway_lb" "lb" {
 resource "scaleway_lb_ip" "lb_ip" {
   project_id = var.scw_project_id
   zone       = var.zone
-}
-
-# Backend for Frontend
-resource "scaleway_lb_backend" "frontend_backend" {
-  name             = "frontend-backend"
-  lb_id            = scaleway_lb.lb.id
-  forward_port     = 80
-  forward_protocol = "http"
-  server_ips       = [for node in scaleway_k8s_pool.pool.nodes : node.private_ip]  # Corrected to reference pool
-}
-
-# Backend for Backend
-resource "scaleway_lb_backend" "backend_backend" {
-  name             = "backend-backend"
-  lb_id            = scaleway_lb.lb.id
-  forward_port     = 3000
-  forward_protocol = "http"
-  server_ips       = [for node in scaleway_k8s_pool.pool.nodes : node.private_ip]  # Corrected to reference pool
 }
