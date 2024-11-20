@@ -135,7 +135,7 @@ resource "scaleway_lb_backend" "frontend_backend" {
   lb_id            = scaleway_lb.lb.id
   forward_port     = 80
   forward_protocol = "http"
-  server_ids       = [scaleway_k8s_cluster.cluster.id]
+  server_ips       = [scaleway_k8s_cluster.cluster.private_network_ip]  # Utilisation de 'private_network_ip'
 }
 
 resource "scaleway_lb_frontend" "backend" {
@@ -151,6 +151,5 @@ resource "scaleway_lb_backend" "backend_backend" {
   lb_id            = scaleway_lb.lb.id
   forward_port     = 3000
   forward_protocol = "http"
-  server_ids       = [scaleway_k8s_cluster.cluster.id]
+  server_ips       = [scaleway_k8s_cluster.cluster.private_network_ip]  # Utilisation de 'private_network_ip'
 }
-
