@@ -123,35 +123,33 @@ resource "scaleway_lb_ip" "lb_ip" {
 }
 
 resource "scaleway_lb_frontend" "frontend" {
-  lb_id                    = scaleway_lb.lb.id
-  name                     = "frontend"
-  port                     = 80
-  destination_port         = 80
-  protocol                 = "http"
-  ssl_compatibility_level  = "ssl_compatibility_level_intermediate"
+  name           = "frontend"
+  lb_id          = scaleway_lb.lb.id
+  inbound_port   = 80
+  backend_id     = scaleway_lb_backend.frontend_backend.id
+  protocol       = "http"
 }
 
 resource "scaleway_lb_backend" "frontend_backend" {
-  lb_id                    = scaleway_lb.lb.id
-  name                     = "frontend-backend"
-  port                     = 80
-  server_ip                = scaleway_k8s_cluster.cluster.ip
-  protocol                 = "http"
+  name             = "frontend-backend"
+  lb_id            = scaleway_lb.lb.id
+  forward_port     = 80
+  forward_protocol = "http"
+  server_ips       = [scaleway_k8s_cluster.cluster.ip]
 }
 
 resource "scaleway_lb_frontend" "backend" {
-  lb_id                    = scaleway_lb.lb.id
-  name                     = "backend"
-  port                     = 3000
-  destination_port         = 3000
-  protocol                 = "http"
+  name           = "backend"
+  lb_id          = scaleway_lb.lb.id
+  inbound_port   = 3000
+  backend_id     = scaleway_lb_backend.backend_backend.id
+  protocol       = "http"
 }
 
 resource "scaleway_lb_backend" "backend_backend" {
-  lb_id                    = scaleway_lb.lb.id
-  name                     = "backend-backend"
-  port                     = 3000
-  server_ip                = scaleway_k8s_cluster.cluster.ip
-  protocol                 = "http"
+  name             = "backend-backend"
+  lb_id            = scaleway_lb.lb.id
+  forward_port     = 3000
+  forward_protocol = "http"
+  server_ips       = [scaleway_k8s_cluster.cluster.ip]
 }
-
