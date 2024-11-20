@@ -121,3 +121,37 @@ resource "scaleway_lb_ip" "lb_ip" {
   project_id = var.scw_project_id
   zone       = var.zone
 }
+
+resource "scaleway_lb_frontend" "frontend" {
+  lb_id                    = scaleway_lb.lb.id
+  name                     = "frontend"
+  port                     = 80
+  destination_port         = 80
+  protocol                 = "http"
+  ssl_compatibility_level  = "ssl_compatibility_level_intermediate"
+}
+
+resource "scaleway_lb_backend" "frontend_backend" {
+  lb_id                    = scaleway_lb.lb.id
+  name                     = "frontend-backend"
+  port                     = 80
+  server_ip                = scaleway_k8s_cluster.cluster.ip
+  protocol                 = "http"
+}
+
+resource "scaleway_lb_frontend" "backend" {
+  lb_id                    = scaleway_lb.lb.id
+  name                     = "backend"
+  port                     = 3000
+  destination_port         = 3000
+  protocol                 = "http"
+}
+
+resource "scaleway_lb_backend" "backend_backend" {
+  lb_id                    = scaleway_lb.lb.id
+  name                     = "backend-backend"
+  port                     = 3000
+  server_ip                = scaleway_k8s_cluster.cluster.ip
+  protocol                 = "http"
+}
+
