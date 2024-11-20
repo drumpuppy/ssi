@@ -122,12 +122,11 @@ resource "scaleway_lb_ip" "lb_ip" {
   zone       = var.zone
 }
 
-resource "scaleway_lb_frontend" "frontend" {
-  name           = "frontend"
-  lb_id          = scaleway_lb.lb.id
-  inbound_port   = 80
-  backend_id     = scaleway_lb_backend.frontend_backend.id
-  protocol       = "http"
+resource "scaleway_k8s_node_pool" "node_pool" {
+  cluster_id = scaleway_k8s_cluster.cluster.id
+  name       = "node_pool"
+  size       = "DEV1-S"
+  node_type  = "k8s"
 }
 
 resource "scaleway_lb_backend" "frontend_backend" {
@@ -135,15 +134,7 @@ resource "scaleway_lb_backend" "frontend_backend" {
   lb_id            = scaleway_lb.lb.id
   forward_port     = 80
   forward_protocol = "http"
-  server_ips       = [scaleway_k8s_cluster.cluster.private_network_ip]  # Utilisation de 'private_network_ip'
-}
-
-resource "scaleway_lb_frontend" "backend" {
-  name           = "backend"
-  lb_id          = scaleway_lb.lb.id
-  inbound_port   = 3000
-  backend_id     = scaleway_lb_backend.backend_backend.id
-  protocol       = "http"
+  server_ips       = [for node in scaleway_k8s_node_pool.node_pool.nodes : node.private_ip]
 }
 
 resource "scaleway_lb_backend" "backend_backend" {
@@ -151,5 +142,6 @@ resource "scaleway_lb_backend" "backend_backend" {
   lb_id            = scaleway_lb.lb.id
   forward_port     = 3000
   forward_protocol = "http"
-  server_ips       = [scaleway_k8s_cluster.cluster.private_network_ip]  # Utilisation de 'private_network_ip'
+  server_ips       = [for node in scaleway_k8s_node_pool.node_pool.nodes : node.private_ip]
 }
+
