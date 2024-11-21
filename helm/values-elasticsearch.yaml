@@ -22,15 +22,13 @@ roles:
   - transform
 
 replicas: 1
+minimumMasterNodes: 1
 
 esMajorVersion: ""
 
 # Allows you to add any config files in /usr/share/elasticsearch/config/
 # such as elasticsearch.yml and log4j2.properties
-
-esConfig:
-  elasticsearch.yml: |
-    discovery.type: single-node
+esConfig: {}
 #  elasticsearch.yml: |
 #    key:
 #      nestedkey: value
@@ -38,6 +36,10 @@ esConfig:
 #    key = value
 
 createCert: true
+
+esJvmOptions: {}
+#  processors.options: |
+#    -XX:ActiveProcessorCount=3
 
 # Extra environment variables to append to this nodeGroup
 # This will be appended to the current 'env:' key. You can use any of the kubernetes env
@@ -185,7 +187,7 @@ podManagementPolicy: "Parallel"
 # If you experience slow pod startups you probably want to set this to `false`.
 enableServiceLinks: true
 
-protocol: http
+protocol: https
 httpPort: 9200
 transportPort: 9300
 
@@ -305,7 +307,7 @@ networkPolicy:
   ## elasticsearch-master-transport-client: "true"
 
   http:
-    enabled: false
+    enabled: true
     ## if explicitNamespacesSelector is not set or set to {}, only client Pods being in the networkPolicy's namespace
     ## and matching all criteria can reach the DB.
     ## But sometimes, we want the Pods to be accessible to clients from other namespaces, in this case, we can use this
@@ -352,4 +354,3 @@ networkPolicy:
 
 tests:
   enabled: true
-
