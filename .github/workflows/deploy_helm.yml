@@ -151,8 +151,6 @@ jobs:
           helm install elasticsearch elastic/elasticsearch \
             --create-namespace \
             --namespace default \
-            --version 7.17.3 \
-            --set imageTag=7.17.3 \
             --values ./helm/values-elasticsearch.yaml
 
       - name: Wait for Elasticsearch to be ready
@@ -176,24 +174,18 @@ jobs:
         run: |
           helm install kibana elastic/kibana \
             --namespace default \
-            --version 7.17.3 \
-            --set imageTag=7.17.3 \
             --values ./helm/values-kibana.yaml
 
       - name: Deploy Logstash
         run: |
           helm install logstash elastic/logstash \
             --namespace default \
-            --version 7.17.3 \
-            --set imageTag=7.17.3 \
             --values ./helm/values-logstash.yaml
 
       - name: Deploy Filebeat
         run: |
           helm install filebeat elastic/filebeat \
             --namespace default \
-            --version 7.17.3 \
-            --set imageTag=7.17.3 \
             --values ./helm/values-filebeat.yaml
 
       - name: Deploy Prometheus
