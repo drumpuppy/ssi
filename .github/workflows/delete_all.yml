@@ -119,6 +119,12 @@ jobs:
           else
             echo "Kibana not installed in the default namespace."
           fi
+
+          if helm list -n default | grep -q 'cortex'; then
+            helm uninstall cortex --namespace default
+          else
+            echo "Cortex not installed in the default namespace."
+          fi
       
       - name: Clean Up Kibana Resources
         continue-on-error: true
