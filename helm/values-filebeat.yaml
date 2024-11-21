@@ -175,7 +175,7 @@ hostAliases: []
 #  - "foo.local"
 #  - "bar.local"
 image: "docker.elastic.co/beats/filebeat"
-imageTag: "7.17.12"
+imageTag: "7.17.3"
 imagePullPolicy: "IfNotPresent"
 imagePullSecrets: []
 
