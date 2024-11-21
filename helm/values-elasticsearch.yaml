@@ -40,9 +40,10 @@ esConfig:
 
 createCert: true
 
-esJvmOptions: |
-  -Xms1024m
-  -Xmx1024m
+esJvmOptions:
+  - "-Xms1024m"
+  - "-Xmx1024m"
+
 
 
 # Extra environment variables to append to this nodeGroup
