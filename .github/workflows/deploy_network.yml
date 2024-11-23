@@ -53,7 +53,8 @@ jobs:
           if [ -n "$frontend_namespace_id" ]; then
             frontend_images=$(scw registry image list namespace-id="$frontend_namespace_id" region=fr-par --output json | jq -r '.[].id')
             if [ -n "$frontend_images" ]; then
-              echo "$frontend_images" | while read -r image_id; do
+              for image_id in $frontend_images; do
+                echo "Deleting image $image_id in frontend namespace..."
                 scw registry image delete image-id="$image_id" region=fr-par || true
               done
             else
@@ -68,7 +69,8 @@ jobs:
           if [ -n "$backend_namespace_id" ]; then
             backend_images=$(scw registry image list namespace-id="$backend_namespace_id" region=fr-par --output json | jq -r '.[].id')
             if [ -n "$backend_images" ]; then
-              echo "$backend_images" | while read -r image_id; do
+              for image_id in $backend_images; do
+                echo "Deleting image $image_id in backend2 namespace..."
                 scw registry image delete image-id="$image_id" region=fr-par || true
               done
             else
@@ -77,7 +79,7 @@ jobs:
           else
             echo "Backend2 namespace not found."
           fi
-
+      
           echo "Deleting frontend Kubernetes resources..."
           kubectl delete deployment frontend || true
           kubectl delete service frontend-service || true
@@ -85,6 +87,7 @@ jobs:
           echo "Deleting backend Kubernetes resources..."
           kubectl delete deployment backend || true
           kubectl delete service backend-service || true
+
 
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
