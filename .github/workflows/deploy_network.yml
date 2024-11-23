@@ -49,25 +49,19 @@ jobs:
       # Step 4: Authenticate with Docker and Scaleway Container Registry
       - name: Log in to Scaleway Container Registry
         run: |
-          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud/app-demo -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
+          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud/app-demo -u nologin --password-stdin <<< "${{ secrets.SCW_ACCESS_KEY }}"
 
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
         run: |
-          docker build -t rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/backend:latest ./backend
-          docker push rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/backend:latest
+          docker build -t rg.fr-par.scw.cloud/app-demo/backend:latest ./backend
+          docker push rg.fr-par.scw.cloud/app-demo/backend:latest
 
       # Step 6: Build and push frontend Docker image
       - name: Build and push frontend Docker image
         run: |
-          docker build -t rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/frontend:latest ./frontend
-          docker push rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/frontend:latest
-
-      # Step 7: Configure kubectl to interact with the Kubernetes cluster
-      - name: Set up kubectl
-        run: |
-          scw k8s kubeconfig install <CLUSTER_ID>
-          kubectl config use-context <CLUSTER_ID>
+          docker build -t rg.fr-par.scw.cloud/app-demo/frontend:latest ./frontend
+          docker push rg.fr-par.scw.cloud/app-demo/frontend:latest
 
       # Step 8: Deploy backend to Kubernetes
       - name: Deploy backend
