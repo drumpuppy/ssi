@@ -11,13 +11,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Step 2: Set up Terraform (if required for infrastructure setup)
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          cli_config_credentials_hostname: app.terraform.io
-          cli_config_credentials_token: ${{ secrets.TF_CLOUD_TOKEN }}
-          terraform_version: latest
+      - name: Install Scaleway CLI
+        run: |
+          curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
+          scw version
 
       # Step 3: Configure Scaleway CLI for the cluster
       - name: Configure Scaleway CLI
@@ -37,6 +34,17 @@ jobs:
           scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
+            echo "Error: Kubernetes cluster ID not found or is not valid."
+            exit 1
+          fi
+          echo "Cluster ID: $cluster_id"
+          scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
       # Step 4: Authenticate with Docker and Scaleway Container Registry
       - name: Log in to Scaleway Container Registry
