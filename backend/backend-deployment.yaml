@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: backend
+        image: rg.fr-par.scw.cloud/backend2/backend
         ports:
         - containerPort: 3000
 ---
