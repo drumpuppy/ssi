@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: frontend
+        image: rg.fr-par.scw.cloud/frontend/frontend
         ports:
         - containerPort: 80
 ---
