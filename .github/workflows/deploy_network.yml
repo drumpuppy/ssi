@@ -30,8 +30,8 @@ jobs:
           touch ~/.config/scw/config.yaml
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
-          scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
-          scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
+          scw config set default-organization-id="${SCW_ORGANIZATION_ID}"
+          scw config set default-project-id="${SCW_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
@@ -47,24 +47,21 @@ jobs:
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
       # Step 4: Authenticate with Docker and Scaleway Container Registry
-      - name: Login to Scaleway Container Registry
-        uses: docker/login-action@v3
-        with:
-          username: nologin
-          password: ${{ secrets.SCW_ACCESS_KEY }}
-          registry: "rg.fr-par.scw.cloud/app-demo"
+      - name: Log in to Scaleway Container Registry
+        run: |
+          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
 
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
         run: |
-          docker build -t rg.fr-par.scw.cloud/app-demo/backend:latest ./backend
-          docker push rg.fr-par.scw.cloud/app-demo/backend:latest
+          docker build -t rg.fr-par.scw.cloud/backend2/backend:latest ./backend
+          docker push rg.fr-par.scw.cloud/backend2/backend:latest
 
       # Step 6: Build and push frontend Docker image
       - name: Build and push frontend Docker image
         run: |
-          docker build -t rg.fr-par.scw.cloud/app-demo/frontend:latest ./frontend
-          docker push rg.fr-par.scw.cloud/app-demo/frontend:latest
+          docker build -t rg.fr-par.scw.cloud/frontend/frontend:latest ./frontend
+          docker push rg.fr-par.scw.cloud/frontend/frontend:latest
 
       # Step 8: Deploy backend to Kubernetes
       - name: Deploy backend
