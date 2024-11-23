@@ -1,15 +1,17 @@
-name: Deploy Network Infrastructure
+name: Deploy Frontend and Backend Applications
 
 on:
   workflow_dispatch:
 
 jobs:
-  network:
+  deploy:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Step 2: Set up Terraform (if required for infrastructure setup)
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -17,6 +19,7 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_CLOUD_TOKEN }}
           terraform_version: latest
 
+      # Step 3: Configure Scaleway CLI for the cluster
       - name: Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
@@ -33,3 +36,48 @@ jobs:
           scw config set default-project-id "${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region "${SCW_DEFAULT_REGION}"
           scw config set default-zone "${SCW_DEFAULT_ZONE}"
+
+      # Step 4: Authenticate with Docker and Scaleway Container Registry
+      - name: Log in to Scaleway Container Registry
+        run: |
+          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
+
+      # Step 5: Build and push backend Docker image
+      - name: Build and push backend Docker image
+        run: |
+          docker build -t rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/backend:latest ./backend
+          docker push rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/backend:latest
+
+      # Step 6: Build and push frontend Docker image
+      - name: Build and push frontend Docker image
+        run: |
+          docker build -t rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/frontend:latest ./frontend
+          docker push rg.fr-par.scw.cloud/${{ secrets.SCW_PROJECT_ID }}/frontend:latest
+
+      # Step 7: Configure kubectl to interact with the Kubernetes cluster
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
+            echo "Error: Kubernetes cluster ID not found or is not valid."
+            exit 1
+          fi
+          echo "Cluster ID: $cluster_id"
+          scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
+
+      # Step 8: Deploy backend to Kubernetes
+      - name: Deploy backend
+        run: |
+          kubectl apply -f ./backend/backend-deployment.yaml 
+
+      # Step 9: Deploy frontend to Kubernetes
+      - name: Deploy frontend
+        run: |
+          kubectl apply -f ./frontend/frontend-deployment.yaml
+
+      # Step 10: Verify deployments
+      - name: Check deployment status
+        run: |
+          kubectl get pods -o wide
+          kubectl get services -o wide
