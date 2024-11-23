@@ -49,7 +49,7 @@ jobs:
       # Step 4: Authenticate with Docker and Scaleway Container Registry
       - name: Log in to Scaleway Container Registry
         run: |
-          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
+          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud/app-demo -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
 
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
