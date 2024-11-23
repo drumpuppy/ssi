@@ -51,6 +51,31 @@ jobs:
         run: |
           echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
 
+      - name: Clean existing images and Kubernetes resources
+        run: |
+          echo "Deleting images in frontend namespace..."
+          frontend_images=$(scw registry image list namespace-id=$(scw registry namespace list name=frontend --output json | jq -r '.[0].id') --output json | jq -r '.[].id')
+          if [ -n "$frontend_images" ]; then
+            echo "$frontend_images" | xargs -I {} scw registry image delete image-id={}
+          else
+            echo "No images found in frontend namespace."
+          fi
+          
+          echo "Deleting images in backend2 namespace..."
+          backend_images=$(scw registry image list namespace-id=$(scw registry namespace list name=backend2 --output json | jq -r '.[0].id') --output json | jq -r '.[].id')
+          if [ -n "$backend_images" ]; then
+            echo "$backend_images" | xargs -I {} scw registry image delete image-id={}
+          else
+            echo "No images found in backend2 namespace."
+          fi
+
+          echo "Deleting frontend Kubernetes resources..."
+          kubectl delete deployment frontend || true
+          kubectl delete service frontend-service || true
+          echo "Deleting backend Kubernetes resources..."
+          kubectl delete deployment backend || true
+          kubectl delete service backend-service || true
+
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
         run: |
