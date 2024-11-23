@@ -1,4 +1,4 @@
-name: Deploy Frontend and Backend Applications
+name: Deploy demo app
 
 on:
   workflow_dispatch:
