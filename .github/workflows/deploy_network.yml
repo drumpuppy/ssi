@@ -53,7 +53,9 @@ jobs:
           if [ -n "$frontend_namespace_id" ]; then
             frontend_images=$(scw registry image list namespace-id="$frontend_namespace_id" region=fr-par --output json | jq -r '.[].id')
             if [ -n "$frontend_images" ]; then
-              echo "$frontend_images" | xargs -I {} scw registry image delete image-id={} region=fr-par
+              echo "$frontend_images" | while read -r image_id; do
+                scw registry image delete image-id="$image_id" region=fr-par || true
+              done
             else
               echo "No images found in frontend namespace."
             fi
@@ -66,7 +68,9 @@ jobs:
           if [ -n "$backend_namespace_id" ]; then
             backend_images=$(scw registry image list namespace-id="$backend_namespace_id" region=fr-par --output json | jq -r '.[].id')
             if [ -n "$backend_images" ]; then
-              echo "$backend_images" | xargs -I {} scw registry image delete image-id={} region=fr-par
+              echo "$backend_images" | while read -r image_id; do
+                scw registry image delete image-id="$image_id" region=fr-par || true
+              done
             else
               echo "No images found in backend2 namespace."
             fi
