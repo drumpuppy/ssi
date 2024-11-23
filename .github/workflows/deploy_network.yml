@@ -30,8 +30,8 @@ jobs:
           touch ~/.config/scw/config.yaml
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
-          scw config set default-organization-id="${SCW_ORGANIZATION_ID}"
-          scw config set default-project-id="${SCW_PROJECT_ID}"
+          scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
+          scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
