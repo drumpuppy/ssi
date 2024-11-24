@@ -6,7 +6,7 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx  # <-- Ajoute cette ligne
+  ingressClassName: nginx
   rules:
   - host: prometheus.my-soc.fr
     http:
