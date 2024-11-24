@@ -18,3 +18,5 @@ spec:
             name: prometheus-server
             port:
               number: 80
+              protocol: TCP
+              targetPort: 8080
