@@ -19,8 +19,8 @@ spec:
               service:
                 name: prometheus-server
                 port:
-                  number: 80
+                  number: 8089
   tls:
     - hosts:
         - prometheus.my-soc.fr
-      secretName: ingress-tls
+      secretName: ingress-tls4
