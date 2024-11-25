@@ -19,7 +19,7 @@ spec:
               service:
                 name: prometheus-server
                 port:
-                  number: 8089
+                  number: 80
   tls:
     - hosts:
         - prometheus.my-soc.fr
