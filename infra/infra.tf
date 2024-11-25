@@ -97,27 +97,3 @@ resource "scaleway_k8s_pool" "pool" {
     max_unavailable = 1
   }
 }
-
-
-# Load Balancer
-resource "scaleway_lb" "lb" {
-  name                    = "k8s-lb"
-  description             = "Load Balancer for Kubernetes"
-  type                    = "lb-s"
-  project_id              = var.scw_project_id
-  ip_ids                  = [scaleway_lb_ip.lb_ip.id]
-  zone                    = var.zone
-  ssl_compatibility_level = "ssl_compatibility_level_intermediate"
-
-  private_network {
-    private_network_id = scaleway_vpc_private_network.pvn.id
-  }
-
-  depends_on = [scaleway_vpc_private_network.pvn]
-}
-
-# Load Balancer IP
-resource "scaleway_lb_ip" "lb_ip" {
-  project_id = var.scw_project_id
-  zone       = var.zone
-}
