@@ -1,4 +1,4 @@
-name: Deploy Network Configuration
+name: Deploy Network
 
 on:
   workflow_dispatch:
