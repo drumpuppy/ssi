@@ -58,7 +58,7 @@ jobs:
       # Étape 6 : Appliquer les configurations Ingress
       - name: Deploy NGINX Ingress Controller
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingressnginx/main/deploy/static/provider/cloud/deploy.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 
       - name: Deploy Prometheus Ingress
         run: |
