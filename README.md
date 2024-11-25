@@ -55,7 +55,7 @@ A faire :
       modifier les entrée dns avec l'ip du nouveau load balancer : récupérer l'adresse ip de scaleway du load.
     dernière étape du workflow 
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-    kubectl apply -f ./ingress/clusterIssuer.yaml
+    kubectl apply -f ./Ingress/clusterIssuer.yaml
 
 - modifier le workflow Delete_All()
       - kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
