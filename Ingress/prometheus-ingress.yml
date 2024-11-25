@@ -23,4 +23,4 @@ spec:
   tls:
     - hosts:
         - prometheus.my-soc.fr
-      secretName: ingress-tls4
+      secretName: ingress-tls
