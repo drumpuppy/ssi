@@ -23,4 +23,4 @@ spec:
   tls:
     - hosts:
         - demo.my-soc.fr
-      secretName: ingress-tls
+      secretName: ingress-tls1
