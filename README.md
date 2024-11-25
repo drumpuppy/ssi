@@ -39,12 +39,18 @@ création d'un cloud pour stocker en temps réel l'état de la configuration clo
 création d'un compte cloud Scaleway
 
 
-
+Fait :
 - supprimer le load balancer de terraform (Ip, pvn)
+
+A faire :
 - git hub workflow :creer un nouveau workflow network par exemple
     ajouter une étape :
     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-    kubectl apply -f ./Ingress/network.yaml
+    kubectl apply -f ./Ingress/prometheus-ingress.yml
+    kubectl apply -f ./Ingress/iris-ingress.yml
+    kubectl apply -f ./Ingress/kibana-ingress.yml
+    kubectl apply -f ./Ingress/demo-ingress.yml
+  
     ajouter l'étape OVH:
       modifier les entrée dns avec l'ip du nouveau load balancer : récupérer l'adresse ip de scaleway du load.
     dernière étape du workflow 
