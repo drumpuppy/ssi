@@ -55,26 +55,40 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-
       # Étape 6 : Déployer le contrôleur NGINX et attendre qu'il soit prêt
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 
-      
-      # Étape 7 : Appliquer les configurations Ingress (après avoir attendu)
+      # Étape 7 : Vérification et suppression des anciens Ingress, puis application des nouveaux Ingress
       - name: Deploy Prometheus Ingress
         run: |
+          if kubectl get ingress prometheus-ingress; then
+            echo "Ingress prometheus-ingress exists, deleting..."
+            kubectl delete ingress prometheus-ingress
+          fi
           kubectl apply -f ./Ingress/prometheus-ingress.yml
 
       - name: Deploy Iris Ingress
         run: |
+          if kubectl get ingress iris-ingress; then
+            echo "Ingress iris-ingress exists, deleting..."
+            kubectl delete ingress iris-ingress
+          fi
           kubectl apply -f ./Ingress/iris-ingress.yml
 
       - name: Deploy Kibana Ingress
         run: |
+          if kubectl get ingress kibana-ingress; then
+            echo "Ingress kibana-ingress exists, deleting..."
+            kubectl delete ingress kibana-ingress
+          fi
           kubectl apply -f ./Ingress/kibana-ingress.yml
 
       - name: Deploy Demo Ingress
         run: |
+          if kubectl get ingress demo-ingress; then
+            echo "Ingress demo-ingress exists, deleting..."
+            kubectl delete ingress demo-ingress
+          fi
           kubectl apply -f ./Ingress/demo-ingress.yml
