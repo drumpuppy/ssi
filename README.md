@@ -44,14 +44,10 @@ todo network :
 
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 kubectl apply -f ./infra/network.yaml
-
 edit ovh dns : il faut que dans l'entrée 'A record' il y est l'adresse ip du load balancer
-dans scaleway:
-dans l'onglet du load balancer : 
-  créer un certificat SSL avec le bon nom de domaine : exemple : prometheus.my-soc.fr
-  créer un backend : mettre les ip privée des nodes (serveurs)
-  créer un frontend : port 443, applicquer le certificat / appliquer le backend
 
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl apply -f clusterIssuer.yaml
 
 
 
