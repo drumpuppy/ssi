@@ -55,11 +55,14 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      # Étape 6 : Appliquer les configurations Ingress
+
+      # Étape 6 : Déployer le contrôleur NGINX et attendre qu'il soit prêt
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-
+          kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
+      
+      # Étape 7 : Appliquer les configurations Ingress (après avoir attendu)
       - name: Deploy Prometheus Ingress
         run: |
           kubectl apply -f ./Ingress/prometheus-ingress.yml
