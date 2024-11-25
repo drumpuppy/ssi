@@ -40,14 +40,22 @@ création d'un compte cloud Scaleway
 
 
 
-todo network :
+- supprimer le load balancer de terraform (Ip, pvn)
+- git hub workflow :creer un nouveau workflow network par exemple
+    ajouter une étape :
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+    kubectl apply -f ./Ingress/network.yaml
+    ajouter l'étape OVH:
+      modifier les entrée dns avec l'ip du nouveau load balancer : récupérer l'adresse ip de scaleway du load.
+    dernière étape du workflow 
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+    kubectl apply -f ./ingress/clusterIssuer.yaml
 
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-kubectl apply -f ./infra/network.yaml
-edit ovh dns : il faut que dans l'entrée 'A record' il y est l'adresse ip du load balancer
-
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-kubectl apply -f clusterIssuer.yaml
+- modifier le workflow Delete_All()
+      - kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+        kubectl delete -f ./Ingress/network.yaml
+        kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+        kubectl delete -f ./ingress/clusterIssuer.yaml
 
 
 
