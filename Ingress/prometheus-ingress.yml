@@ -1,20 +1,26 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: prometheus-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-  name: prometheus-ingress
-  namespace: default
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
   rules:
-  - host: prometheus.my-soc.fr
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: prometheus-server
-            port:
-              number: 80
+    - host: prometheus.my-soc.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-server
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - prometheus.my-soc.fr
+      secretName: ingress-tls
