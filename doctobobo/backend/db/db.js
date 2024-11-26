@@ -1,14 +1,13 @@
 const { Pool } = require("pg");
 
 const config = {
-  user: process.env.DB_USER || "your_db_user",
-  host: process.env.DB_HOST || "localhost",
+  host: process.env.DB_HOST || "mysql",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "Mysql12!",
   database: process.env.DB_NAME || "doctobobo",
-  password: process.env.DB_PASSWORD || "your_db_password",
-  port: process.env.DB_PORT || 5432,
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 60000 // Timeout for connecting to the database
+  port: process.env.DB_PORT || 3306,
 };
+
 
 const pool = new Pool(config);
 

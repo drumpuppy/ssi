@@ -96,24 +96,25 @@ jobs:
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
         run: |
-          docker build -t rg.fr-par.scw.cloud/backend2/backend:latest .doctobobo/backend
+          docker build -t rg.fr-par.scw.cloud/backend2/backend:latest ./doctobobo/backend
           docker push rg.fr-par.scw.cloud/backend2/backend:latest
 
       # Step 6: Build and push frontend Docker image
-      - name: Build and push frontend Docker image
-        run: |
-          docker build -t rg.fr-par.scw.cloud/frontend/frontend:latest .doctobobo/frontend
-          docker push rg.fr-par.scw.cloud/frontend/frontend:latest
+      #- name: Build and push frontend Docker image
+      #  run: |
+      #    docker build -t rg.fr-par.scw.cloud/frontend/frontend:latest ./doctobobo/frontend
+      #    docker push rg.fr-par.scw.cloud/frontend/frontend:latest
 
       # Step 8: Deploy backend to Kubernetes
       - name: Deploy backend
         run: |
-          kubectl apply -f doctobobo/backend/backend-deployment.yaml
+          kubectl apply -f ./doctobobo/backend/backend-deployment.yaml
+          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml
 
       # Step 9: Deploy frontend to Kubernetes
-      - name: Deploy frontend
-        run: |
-          kubectl apply -f doctobobo/frontend/frontend-deployment.yaml
+      #- name: Deploy frontend
+      #  run: |
+      #    kubectl apply -f doctobobo/frontend/frontend-deployment.yaml
 
       # Step 10: Verify deployments
       - name: Check deployment status
