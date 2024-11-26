@@ -61,7 +61,16 @@ jobs:
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
           kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
 
-      # Étape 7 : Vérification et suppression des anciens Ingress, puis application des nouveaux Ingress
+      # Étape 7 : Déployer cert-manager et le ClusterIssuer
+      - name: Deploy cert-manager
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+
+      - name: Deploy ClusterIssuer
+        run: |
+          kubectl apply -f ./Ingress/clusterIssuer.yaml
+
+      # Étape 8 : Vérification et suppression des anciens Ingress, puis application des nouveaux Ingress
       - name: Deploy Prometheus Ingress
         run: |
           if kubectl get ingress prometheus-ingress; then
@@ -94,22 +103,21 @@ jobs:
           fi
           kubectl apply -f ./Ingress/demo-ingress.yml
 
+      # Étape 9 : Suppression des Ingress (commentée)
+      # - name: Delete Ingress resources
+      #   run: |
+      #     kubectl delete ingress prometheus-ingress
+      #     kubectl delete ingress iris-ingress
+      #     kubectl delete ingress kibana-ingress
+      #     kubectl delete ingress demo-ingress
 
-     # Étape 8 : Suppression des Ingress (Mise en commentaire)
-    # - name: Delete Ingress resources
-    #   run: |
-    #     kubectl delete ingress prometheus-ingress
-    #     kubectl delete ingress iris-ingress
-    #     kubectl delete ingress kibana-ingress
-    #     kubectl delete ingress demo-ingress
-
-    # Étape 9 : Suppression du Load Balancer (Scaleway) (Mise en commentaire)
-    # - name: Delete Load Balancer
-    #   run: |
-    #     lb_id=$(scw lb server list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
-    #     if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
-    #       echo "Error: Load Balancer ID not found or is not valid."
-    #       exit 1
-    #     fi
-    #     echo "Load Balancer ID: $lb_id"
-    #     scw lb server delete "$lb_id"
+      # Étape 10 : Suppression du Load Balancer (commentée)
+      # - name: Delete Load Balancer
+      #   run: |
+      #     lb_id=$(scw lb server list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+      #     if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
+      #       echo "Error: Load Balancer ID not found or is not valid."
+      #       exit 1
+      #     fi
+      #     echo "Load Balancer ID: $lb_id"
+      #     scw lb server delete "$lb_id"
