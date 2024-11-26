@@ -12,6 +12,16 @@ spec:
       labels:
         app: mysql
     spec:
+      initContainers:
+      - name: mysql-init
+        image: mysql:8
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: Mysql12!
+        volumeMounts:
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+        command: ["sh", "-c", "mysql -u root -p$MYSQL_ROOT_PASSWORD < /docker-entrypoint-initdb.d/bdd.sql"]
       containers:
       - name: mysql
         image: mysql:8
@@ -25,10 +35,16 @@ spec:
         volumeMounts:
         - name: mysql-data
           mountPath: /var/lib/mysql
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
       volumes:
       - name: mysql-data
         persistentVolumeClaim:
           claimName: mysql-pvc
+      - name: init-script
+        configMap:
+          name: mysql-init-configmap
+
 
 ---
 
