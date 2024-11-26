@@ -98,6 +98,15 @@ jobs:
           kubectl delete deployment mysql -n doctobobo || true
 
 
+      # Step 5: Deploy MySQL
+      - name: Deploy MySQL
+        run: |
+          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
+
+      - name: Wait for MySQL to be Ready
+        run: |
+          kubectl wait --for=condition=ready pod -l app=mysql -n doctobobo --timeout=120s
+
       # Step 5: Build and push backend Docker image
       - name: Build and push backend Docker image
         run: |
@@ -114,7 +123,10 @@ jobs:
       - name: Deploy backend
         run: |
           kubectl apply -f ./doctobobo/backend/backend-deployment.yaml -n doctobobo
-          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
+
+      - name: Wait for Backend to be Ready
+        run: |
+          kubectl wait --for=condition=ready pod -l app=backend -n doctobobo --timeout=120s
 
       # Step 9: Deploy frontend to Kubernetes
       - name: Deploy frontend
