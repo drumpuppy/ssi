@@ -72,7 +72,7 @@ export default function AppointmentCard({
     formData.append('file', file);
 
     try {
-      const response = await axios.post(`http://localhost:5000/book/upload/${id}`, formData, {
+      const response = await axios.post(`http://backend:5000/book/upload/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -92,7 +92,7 @@ export default function AppointmentCard({
 
   const deleteFile = async (filename) => {
     try {
-      const response = await axios.delete(`http://localhost:5000/book/delete/${id}/${filename}`);
+      const response = await axios.delete(`http://backend:5000/book/delete/${id}/${filename}`);
       if (response.status === 200) {
         alert('File deleted successfully');
       } else {
@@ -108,7 +108,7 @@ export default function AppointmentCard({
 
   const fetchFiles = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/book/files/${id}`);
+      const response = await axios.get(`http://backend:5000/book/files/${id}`);
       if (response.status === 200) {
         setFiles(response.data.files);
       }

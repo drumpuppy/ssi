@@ -55,7 +55,7 @@ export default function PatientCard({
   const fetchFiles = async () => {
     if (id) { // Ensure `id` is not undefined
       try {
-        const response = await axios.get(`http://localhost:5000/book/files/${id}`);
+        const response = await axios.get(`http://backend:5000/book/files/${id}`);
         if (response.status === 200) {
           setFiles(response.data.files);
         } else {
@@ -77,7 +77,7 @@ export default function PatientCard({
     formData.append('file', file);
   
     try {
-      const response = await axios.post(`http://localhost:5000/book/upload/${id}`, formData);
+      const response = await axios.post(`http://backend:5000/book/upload/${id}`, formData);
       console.log('File uploaded, server response:', response); // Debugging log
       fetchFiles(); // Refresh file list after upload
     } catch (error) {
@@ -87,7 +87,7 @@ export default function PatientCard({
 
   const downloadFile = async (fileName) => {
     try {
-      const response = await axios.get(`http://localhost:5000/book/download/${id}/${fileName}`);
+      const response = await axios.get(`http://backend:5000/book/download/${id}/${fileName}`);
       const signedUrl = response.data.url;
       window.open(signedUrl, '_blank');
     } catch (error) {

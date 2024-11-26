@@ -16,7 +16,7 @@ const Doctors = ({ search, searchPostalCode }) => {
   
   const getAllDoctors = async () => {
     try {
-      const response = await fetch("http://localhost:5000/Medecin/Medecin", {
+      const response = await fetch("http://backend:5000/Medecin/Medecin", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -49,7 +49,7 @@ const Doctors = ({ search, searchPostalCode }) => {
           };
           try {
             const response = await fetch(
-              "http://localhost:5000/book/addAppointment",
+              "http://backend:5000/book/addAppointment",
               {
                 method: "POST",
                 headers: {

@@ -43,7 +43,7 @@ const AddDoctorAvailablity = () => {
     let email = userData.user.email;
     try {
       const response = await fetch(
-        "http://localhost:5000/user/updateTimeAvailability",
+        "http://backend:5000/user/updateTimeAvailability",
         {
           method: "PUT",
           headers: {

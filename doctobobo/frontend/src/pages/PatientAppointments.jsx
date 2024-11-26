@@ -14,7 +14,7 @@ const PatientAppointments = () => {
   const getAppoints = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/book/getBookedAppointmentsPatients?id=${userData.user.idPatient}`
+        `http://backend:5000/book/getBookedAppointmentsPatients?id=${userData.user.idPatient}`
       );
 
       if (response.ok) {

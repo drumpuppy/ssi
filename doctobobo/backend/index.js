@@ -15,7 +15,14 @@ async function main() {
 
   const app = express();
   const port = process.env.PORT || 5000;
-  app.use(cors());
+
+  const corsOptions = {
+    origin: "http://frontend-service",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // Allow cookies if needed
+  };
+
+  app.use(cors(corsOptions));
   app.disable("x-powered-by");
 
   // app.use("/webhooks", require("./routes/webhooks.route"));
@@ -35,7 +42,7 @@ async function main() {
   // app.use("/sale", require("./routes/sales.route"));
 
   app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Example app listening at http://frontend-service:${port}`);
   });
 }
 
