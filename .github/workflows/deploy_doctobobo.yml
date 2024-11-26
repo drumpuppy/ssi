@@ -50,6 +50,10 @@ jobs:
         run: |
           echo "${{ secrets.SCW_SECRET_KEY }}" | docker login rg.fr-par.scw.cloud -u "${{ secrets.SCW_ACCESS_KEY }}" --password-stdin
 
+      - name: Create doctobobo namespace
+        run: |
+          kubectl create namespace doctobobo || true
+
       - name: Clean existing images and Kubernetes resources
         run: |
           echo "Deleting images in frontend namespace..."
@@ -85,13 +89,13 @@ jobs:
           fi
       
           echo "Deleting frontend Kubernetes resources..."
-          kubectl delete deployment frontend || true
-          kubectl delete service frontend-service || true
+          kubectl delete deployment frontend -n doctobobo || true
+          kubectl delete service frontend-service -n doctobobo || true
           
           echo "Deleting backend Kubernetes resources..."
-          kubectl delete deployment backend || true
-          kubectl delete service backend-service || true
-          kubectl delete deployment mysql || true
+          kubectl delete deployment backend -n doctobobo || true
+          kubectl delete service backend-service -n doctobobo || true
+          kubectl delete deployment mysql -n doctobobo || true
 
 
       # Step 5: Build and push backend Docker image
@@ -109,13 +113,13 @@ jobs:
       # Step 8: Deploy backend to Kubernetes
       - name: Deploy backend
         run: |
-          kubectl apply -f ./doctobobo/backend/backend-deployment.yaml
-          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml
+          kubectl apply -f ./doctobobo/backend/backend-deployment.yaml -n doctobobo
+          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
 
       # Step 9: Deploy frontend to Kubernetes
       - name: Deploy frontend
         run: |
-          kubectl apply -f doctobobo/frontend/frontend-deployment.yaml
+          kubectl apply -f doctobobo/frontend/frontend-deployment.yaml -n doctobobo
 
       # Step 10: Verify deployments
       - name: Check deployment status

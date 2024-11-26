@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
+  namespace: doctobobo
 spec:
   replicas: 1
   selector:
@@ -21,7 +22,7 @@ spec:
         volumeMounts:
         - name: init-script
           mountPath: /docker-entrypoint-initdb.d
-        command: ["sh", "-c", "mysql -u root -p$MYSQL_ROOT_PASSWORD < /docker-entrypoint-initdb.d/bdd.sql"]
+        command: ["sh", "-c", "until mysqladmin ping -h localhost --silent; do echo waiting for mysql; sleep 2; done; mysql -u root -p$MYSQL_ROOT_PASSWORD < /docker-entrypoint-initdb.d/bdd.sql"]
       containers:
       - name: mysql
         image: mysql:8
@@ -52,6 +53,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql
+  namespace: doctobobo
 spec:
   selector:
     app: mysql
@@ -68,6 +70,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
+  namespace: doctobobo
 spec:
   accessModes:
   - ReadWriteOnce
@@ -80,6 +83,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mysql-init-configmap
+  namespace: doctobobo
 data:
   bdd.sql: |
     DROP DATABASE doctobobo;
