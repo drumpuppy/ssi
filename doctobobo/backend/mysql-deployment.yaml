@@ -17,13 +17,9 @@ spec:
         image: mysql:8
         env:
         - name: MYSQL_ROOT_PASSWORD
-          value: "Mysql12!"
+          value: Mysql12!
         - name: MYSQL_DATABASE
-          value: "doctobobo"
-        - name: MYSQL_USER
-          value: "root"
-        - name: MYSQL_PASSWORD
-          value: "Mysql12!"
+          value: doctobobo
         ports:
         - containerPort: 3306
         volumeMounts:
@@ -33,6 +29,7 @@ spec:
       - name: mysql-data
         persistentVolumeClaim:
           claimName: mysql-pvc
+
 
 ---
 
