@@ -91,6 +91,7 @@ jobs:
           echo "Deleting backend Kubernetes resources..."
           kubectl delete deployment backend || true
           kubectl delete service backend-service || true
+          kubectl delete deployment mysql || true
 
 
       # Step 5: Build and push backend Docker image
