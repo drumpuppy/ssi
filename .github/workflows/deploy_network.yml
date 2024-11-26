@@ -93,3 +93,23 @@ jobs:
             kubectl delete ingress demo-ingress
           fi
           kubectl apply -f ./Ingress/demo-ingress.yml
+
+
+     # Étape 8 : Suppression des Ingress (Mise en commentaire)
+    # - name: Delete Ingress resources
+    #   run: |
+    #     kubectl delete ingress prometheus-ingress
+    #     kubectl delete ingress iris-ingress
+    #     kubectl delete ingress kibana-ingress
+    #     kubectl delete ingress demo-ingress
+
+    # Étape 9 : Suppression du Load Balancer (Scaleway) (Mise en commentaire)
+    # - name: Delete Load Balancer
+    #   run: |
+    #     lb_id=$(scw lb server list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+    #     if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
+    #       echo "Error: Load Balancer ID not found or is not valid."
+    #       exit 1
+    #     fi
+    #     echo "Load Balancer ID: $lb_id"
+    #     scw lb server delete "$lb_id"
