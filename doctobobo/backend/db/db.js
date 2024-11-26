@@ -1,4 +1,4 @@
-const { Pool } = require("pg");
+const mysql = require("mysql2/promise");
 
 const config = {
   host: process.env.DB_HOST || "mysql",
@@ -8,17 +8,13 @@ const config = {
   port: process.env.DB_PORT || 3306,
 };
 
-
-const pool = new Pool(config);
-
 const connectToDB = async () => {
   try {
-    const client = await pool.connect();
-    console.log("Connected to PostgreSQL database successfully!");
-    // You can run queries here if needed
-    return client; // Return the connected client
+    const db = await mysql.createConnection(config);
+    console.log("Connected to MySQL database successfully!");
+    return db;
   } catch (error) {
-    console.error("Error: Connection to PostgreSQL database failed!", error);
+    console.error("Error connecting to MySQL database:", error);
     throw error;
   }
 };
