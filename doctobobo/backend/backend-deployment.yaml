@@ -16,17 +16,28 @@ spec:
       - name: backend
         image: rg.fr-par.scw.cloud/backend2/backend
         ports:
-        - containerPort: 3000
+        - containerPort: 5000
+        env:
+        - name: DB_HOST
+          value: "mysql"
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          value: "root"
+        - name: DB_PASSWORD
+          value: "Mysql12!"
+        - name: DB_NAME
+          value: "doctobobo"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service
+  name: backend
 spec:
   selector:
     app: backend
   ports:
-    - protocol: TCP
-      port: 3000
-      targetPort: 3000
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
   type: ClusterIP
