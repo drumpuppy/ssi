@@ -8,6 +8,8 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/default-backend: "frontend-service"
 spec:
   rules:
   - host: doctobobo.my-soc.fr
@@ -30,4 +32,4 @@ spec:
   tls:
     - hosts:
         - doctobobo.my-soc.fr
-      secretName: ingress-tls
+      secretName: doctobobo-tls
