@@ -16,7 +16,7 @@ const Doctobo = () => {
   const [selectedDate, setSelectedDate] = useState();
   const { userData } = useContext(AuthContext);
   const getAllDoctors = async () => {
-    const response = await fetch("http://backend:5000/Medecin/Medecin", {
+    const response = await fetch("/api/Medecin/Medecin", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -44,7 +44,7 @@ const Doctobo = () => {
 
     try {
       const response = await fetch(
-        "http://backend:5000/book/addAppointment",
+        "/api/book/addAppointment",
         {
           method: "POST",
           headers: {

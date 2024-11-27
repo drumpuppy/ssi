@@ -42,7 +42,7 @@ async function main() {
   // app.use("/sale", require("./routes/sales.route"));
 
   app.listen(port, () => {
-    console.log(`Example app listening at http://frontend-service:${port}`);
+    console.log(`Example app listening at http://backend:${port}`);
   });
 }
 

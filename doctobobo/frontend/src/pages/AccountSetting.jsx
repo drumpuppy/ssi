@@ -64,7 +64,7 @@ const AccountSetting = () => {
   const updateCall = async () => {
     console.log(formData);
     try {
-      const response = await fetch("http://backend:5000/user/update", {
+      const response = await fetch("/api/user/update", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

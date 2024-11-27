@@ -13,7 +13,7 @@ const DoctorAppointments = () => {
 
   const updateAppointmentPrescription = async (appointmentId, newPrescription) => {
     try {
-      const response = await fetch(`http://backend:5000/book/updateAppointment/${appointmentId}`, {
+      const response = await fetch(`/api/book/updateAppointment/${appointmentId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -43,7 +43,7 @@ const DoctorAppointments = () => {
   const getAppoints = async () => {
     try {
       const response = await fetch(
-        `http://backend:5000/book/getBookedAppointmentsDoctors?id=${userData.user.idMedecin}`
+        `/api/book/getBookedAppointmentsDoctors?id=${userData.user.idMedecin}`
       );
 
       if (response.ok) {

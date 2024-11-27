@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { db } = global;
 
-router.get("/", async (req, res) => {
+router.get("/Medecin", async (req, res) => {
   try {
     const query = `SELECT * FROM Medecin`;
     const [medecins] = await db.query(query);
