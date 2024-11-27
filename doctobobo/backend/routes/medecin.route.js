@@ -4,15 +4,13 @@ const { db } = global;
 
 router.get("/Medecin", async (req, res) => {
   try {
-    const query = `SELECT * FROM Medecin`;
-    const [medecins] = await db.query(query);
-    console.log(`Fetched ${medecins.length} Medecin records`);
-    res.status(200).json(medecins);
+    const getAllMedicinesQuery = `SELECT * FROM medecin`;
+    const medicines = await db.query(getAllMedicinesQuery);
+    res.status(200).json({ medicines });
   } catch (error) {
-    console.error("Error fetching Medecin records:", error);
+    console.error("Error fetching Medecin:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 module.exports = router;

@@ -57,7 +57,7 @@ const [times, setTimes] = React.useState(() => {
   const validateApi = async (doctorId, selectedDate) => {
     try {
       const response = await fetch(
-        "http://backend:5000/book/checkDoctorAvailability",
+        "/api/book/checkDoctorAvailability",
         {
           method: "POST",
           headers: {

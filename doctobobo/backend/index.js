@@ -17,7 +17,7 @@ async function main() {
   const port = process.env.PORT || 5000;
 
   const corsOptions = {
-    origin: "http://frontend-service",
+    origin: "http://doctobobo.my-soc.fr, https://doctobobo.my-soc.fr",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true, // Allow cookies if needed
   };
