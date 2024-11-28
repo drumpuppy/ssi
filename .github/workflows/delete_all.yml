@@ -137,6 +137,14 @@ jobs:
           kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
+
+      - name: Delete network resources
+        continue-on-error: true
+        run: |
+          kubectl delete -f ./Ingress/network.yaml
+          kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+          kubectl delete -f ./ingress/clusterIssuer.yaml
       
       - name: List and Delete All PVCs
         run: |
