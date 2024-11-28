@@ -55,13 +55,20 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      # Étape 6 : Déployer le contrôleur NGINX et attendre qu'il soit prêt
+      # Étape 6 : Clean des Ressources
+      - name: Delete network resources
+        continue-on-error: true
+        run: |
+          kubectl delete -f ./Ingress/network.yaml
+          kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+          kubectl delete -f ./ingress/clusterIssuer.yaml
+
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
           kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
 
-      # Étape 7 : Déployer cert-manager et le ClusterIssuer
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
@@ -70,54 +77,6 @@ jobs:
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml
 
-      # Étape 8 : Vérification et suppression des anciens Ingress, puis application des nouveaux Ingress
-      - name: Deploy Prometheus Ingress
+      - name: Deploy Ingress
         run: |
-          if kubectl get ingress prometheus-ingress; then
-            echo "Ingress prometheus-ingress exists, deleting..."
-            kubectl delete ingress prometheus-ingress
-          fi
-          kubectl apply -f ./Ingress/prometheus-ingress.yml
-
-      - name: Deploy Iris Ingress
-        run: |
-          if kubectl get ingress iris-ingress; then
-            echo "Ingress iris-ingress exists, deleting..."
-            kubectl delete ingress iris-ingress
-          fi
-          kubectl apply -f ./Ingress/iris-ingress.yml
-
-      - name: Deploy Kibana Ingress
-        run: |
-          if kubectl get ingress kibana-ingress; then
-            echo "Ingress kibana-ingress exists, deleting..."
-            kubectl delete ingress kibana-ingress
-          fi
-          kubectl apply -f ./Ingress/kibana-ingress.yml
-
-      - name: Deploy Demo Ingress
-        run: |
-          if kubectl get ingress demo-ingress; then
-            echo "Ingress demo-ingress exists, deleting..."
-            kubectl delete ingress demo-ingress
-          fi
-          kubectl apply -f ./Ingress/demo-ingress.yml
-
-      # Étape 9 : Suppression des Ingress
-      - name: Delete Ingress resources
-        run: |
-          kubectl delete ingress prometheus-ingress
-          kubectl delete ingress iris-ingress
-          kubectl delete ingress kibana-ingress
-          kubectl delete ingress demo-ingress
-
-      # Étape 10 : Suppression du Load Balancer
-      - name: Delete Load Balancer
-        run: |
-          lb_id=$(scw lb server list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
-            if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
-          echo "Error: Load Balancer ID not found or is not valid."
-          exit 1
-          fi
-          echo "Load Balancer ID: $lb_id"
-          scw lb server delete "$lb_id"
+          kubectl apply -f ./Ingress/network.yml
