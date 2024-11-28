@@ -59,10 +59,11 @@ jobs:
       - name: Delete network resources
         continue-on-error: true
         run: |
-          kubectl delete -f ./Ingress/network.yaml
           kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
           kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
           kubectl delete -f ./ingress/clusterIssuer.yaml
+          kubectl delete -f ./Ingress/network.yaml
+
 
       - name: Deploy NGINX Ingress Controller
         run: |
