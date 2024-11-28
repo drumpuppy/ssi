@@ -73,7 +73,7 @@ jobs:
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-          kubectl wait --for=condition=ready pod -l app=cert-manager -n cert-manager --timeout=60s
+          sleep 20
 
       - name: Deploy ClusterIssuer
         run: |
