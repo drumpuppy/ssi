@@ -61,8 +61,8 @@ jobs:
         run: |
           kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
           kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
-          kubectl delete -f ./ingress/clusterIssuer.yaml
-          kubectl delete -f ./Ingress/network.yaml
+          kubectl delete -f ./ingress/clusterIssuer.yaml -n default
+          kubectl delete -f ./Ingress/network.yaml -n default
 
 
       - name: Deploy NGINX Ingress Controller
@@ -77,8 +77,8 @@ jobs:
 
       - name: Deploy ClusterIssuer
         run: |
-          kubectl apply -f ./Ingress/clusterIssuer.yaml
+          kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
 
       - name: Deploy Ingress
         run: |
-          kubectl apply -f ./Ingress/network.yaml
+          kubectl apply -f ./Ingress/network.yaml -n default
