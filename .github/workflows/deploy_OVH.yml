@@ -53,14 +53,15 @@ jobs:
             echo "Error: No Load Balancer IPs found."
             exit 1
           fi
-          # Si plusieurs IPs de Load Balancers, sélectionnez la première.
-          lb_ip=$(echo "$lb_data" | jq -r '.[0].address')
+          # Extraction de l'adresse IP à partir du champ 'ip_address'
+          lb_ip=$(echo "$lb_data" | jq -r '.[0].ip_address')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
             echo "Error: Load Balancer IP not found."
             exit 1
           fi
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+
 
 
 
