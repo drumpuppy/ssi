@@ -7,7 +7,7 @@ import steImage from "../../assets/ste.png";
 import { styles } from "../../css/doctobo.styles";
 
 const Doctors = ({ search, searchPostalCode }) => {
-
+  const [docs, setDocs] = useState([]);
   const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState();
   const [selectedTimeItem, setSelectedTimeItem] = useState({});
@@ -24,6 +24,7 @@ const Doctors = ({ search, searchPostalCode }) => {
       });
       const responseData = await response.json();
 
+      setDocs(responseData.medicines[0]);
     } catch (error) {
       console.error("Error fetching doctors:", error);
     }
