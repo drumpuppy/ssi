@@ -85,22 +85,22 @@ jobs:
 
 
 
-
-
-          # Étape 5 : Récupérer l'IP du Load Balancer
+ # Étape 5 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
-          lb_id=$(scw lb list name=k8s-cluster-lb project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          lb_data=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
+          lb_id=$(echo "$lb_data" | jq -r '.[] | select(.type == "lb-s" and .status == "ready") | .id' | head -n 1)
           if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
-            echo "Error: Load Balancer ID not found."
+            echo "Error: No active Load Balancer of type 'lb-s' found."
             exit 1
           fi
-          lb_ip=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].ip')
+          lb_ip=$(echo "$lb_data" | jq -r --arg id "$lb_id" '.[] | select(.id == $id) | .ip')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
-            echo "Error: Load Balancer IP not found."
+            echo "Error: Load Balancer IP not found for ID $lb_id."
             exit 1
           fi
+          echo "Load Balancer ID: $lb_id"
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
