@@ -73,22 +73,24 @@ jobs:
           python3 -c "
           import ovh
           
-          # Créer un client API OVH avec vos clés
-          client = ovh.Client(
-              endpoint='ovh-eu',  # ou 'ovh-us' selon la localisation de votre compte
-              application_key='b56afcfd478f31fa',
-              application_secret='625b16511d4dae0b5f32e4ac74fc9557',
-              consumer_key='b8027bb4060e0a5fa5b0899f12884530'
-          )
-          
-          # Tester la connexion en récupérant les informations de l'utilisateur
-          try:
-              response = client.get('/me')
-              print('Connexion réussie : ', response)
-          except ovh.exceptions.APIError as e:
-              print('Erreur API : ', e)
-              exit(1)
-          "
+
+            # Créer un client API OVH avec vos clés
+            client = ovh.Client(
+                endpoint='ovh-eu',
+                application_key='b56afcfd478f31fa',
+                application_secret='625b16511d4dae0b5f32e4ac74fc9557',
+                consumer_key='b8027bb4060e0a5fa5b0899f12884530'
+            )
+            
+            # Tester la connexion avec une requête simple
+            try:
+                # Vérifier les informations sur le serveur OVH
+                response = client.get('/me')
+                print('Connexion réussie : ', response)
+            except ovh.exceptions.APIError as e:
+                print('Erreur API : ', e)
+                exit(1)
+
 
       
 
