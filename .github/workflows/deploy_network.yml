@@ -64,7 +64,7 @@ jobs:
           kubectl delete -f ./ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
 
-
+      # Étape 7 : Déployer les Ressources Réseau
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
@@ -82,3 +82,56 @@ jobs:
       - name: Deploy Ingress
         run: |
           kubectl apply -f ./Ingress/network.yaml
+
+      # Étape 8 : Récupérer l'IP Publique du Load Balancer
+      - name: Get Public IP of Load Balancer
+        id: get_lb_ip
+        run: |
+          LB_ID=$(scw lb list name=my-lb project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$LB_ID" || "$LB_ID" == "null" ]]; then
+            echo "Error: Load Balancer ID not found or is invalid."
+            exit 1
+          fi
+          echo "Load Balancer ID: $LB_ID"
+          PUBLIC_IP=$(scw lb get id=$LB_ID --output json | jq -r '.ip')
+          if [[ -z "$PUBLIC_IP" || "$PUBLIC_IP" == "null" ]]; then
+            echo "Error: Public IP not found for Load Balancer."
+            exit 1
+          fi
+          echo "::set-output name=public_ip::$PUBLIC_IP"
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+
+      # Étape 9 : Mettre à Jour les Enregistrements DNS via OVH
+      - name: Update DNS Records via OVH
+        run: |
+          DOMAIN="my-soc.fr"
+          SUBDOMAINS=("prometheus" "iris" "kibana" "doctobobo")
+          PUBLIC_IP="${{ steps.get_lb_ip.outputs.public_ip }}"
+          
+          for SUBDOMAIN in "${SUBDOMAINS[@]}"; do
+            RECORD_ID=$(curl -s -X GET -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
+              -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
+              "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/record?fieldType=A&subDomain=$SUBDOMAIN" \
+              | jq -r '.[0]')
+            
+            if [[ -n "$RECORD_ID" ]]; then
+              echo "Updating DNS record for $SUBDOMAIN.$DOMAIN with IP $PUBLIC_IP"
+              curl -s -X PUT -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
+                -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
+                -d "{\"target\":\"$PUBLIC_IP\"}" \
+                "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/record/$RECORD_ID"
+            else
+              echo "Creating new DNS record for $SUBDOMAIN.$DOMAIN with IP $PUBLIC_IP"
+              curl -s -X POST -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
+                -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
+                -d "{\"fieldType\":\"A\",\"subDomain\":\"$SUBDOMAIN\",\"target\":\"$PUBLIC_IP\"}" \
+                "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/record"
+            fi
+          done
+
+          # Commit changes to the DNS zone
+          curl -s -X POST -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
+            -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
+            "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/refresh"
