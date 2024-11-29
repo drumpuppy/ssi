@@ -1,0 +1,29 @@
+ # Étape 5 : Récupérer l'IP du Load Balancer
+      - name: Get Load Balancer IP
+        id: get-lb-ip
+        run: |
+          lb_data=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
+          echo "Debugging Load Balancer Data: $lb_data"
+          if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
+            echo "Error: No Load Balancers found in the project."
+            exit 1
+          fi
+          # Récupérer le dernier Load Balancer créé
+          lb_ip=$(echo "$lb_data" | jq -r 'sort_by(.created_at) | last(.[]).ip')
+          if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
+            echo "Error: Load Balancer IP not found."
+            exit 1
+          fi
+          echo "Load Balancer IP: $lb_ip"
+          echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+
+
+      # Étape 6 : Mettre à jour les domaines OVH
+      - name: Update OVH Domains
+        env:
+          OVH_APP_KEY: ${{ secrets.OVH_APP_KEY }}
+          OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}
+          OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+          LB_IP: ${{ env.lb_ip }}
+        run: |
+          python3 ./scripts/update_ovh_domains.py --ip $LB_IP
