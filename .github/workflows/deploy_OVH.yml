@@ -47,14 +47,14 @@ jobs:
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
-          lb_data=$(scw lb list --output json)
+          lb_data=$(scw lb ip list --output json)
           echo "Debugging Load Balancer Data: $lb_data"
           if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
-            echo "Error: No Load Balancers found."
+            echo "Error: No Load Balancer IPs found."
             exit 1
           fi
-          # Si plusieurs Load Balancers, sélectionnez le dernier ou celui désiré.
-          lb_ip=$(echo "$lb_data" | jq -r '.[0].ip')
+          # Si plusieurs IPs de Load Balancers, sélectionnez la première.
+          lb_ip=$(echo "$lb_data" | jq -r '.[0].address')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
             echo "Error: Load Balancer IP not found."
             exit 1
