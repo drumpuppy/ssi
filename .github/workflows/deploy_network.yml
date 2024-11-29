@@ -6,12 +6,13 @@ on:
 jobs:
   deploy-network:
     runs-on: ubuntu-latest
+
     steps:
       # Étape 1 : Checkout du dépôt
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 2 : Installer Helm (si nécessaire)
+      # Étape 2 : Installer Helm
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -55,29 +56,43 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      # Étape 6 : Tagger le Load Balancer si ce n'est pas déjà fait
-      - name: Tag the Load Balancer if not already tagged
+      # Étape 6 : Récupérer l'adresse IP du Load Balancer
+      - name: Get Load Balancer IP
+        id: get_lb_ip
         run: |
-          # Chercher si un Load Balancer avec le tag 'my-loadbalancer' existe
-          LB_ID=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[] | select(.tags | index("my-loadbalancer")) | .id')
-
-          # Si le Load Balancer n'est pas trouvé, le créer et le taguer
-          if [ -z "$LB_ID" ]; then
-            echo "No Load Balancer with the tag found. Creating a new one..."
-            # Remplace cette commande par celle qui crée ton Load Balancer
-            LB_ID=$(scw lb create name="my-lb" tags="my-loadbalancer" frontends=[...])
-            echo "Created Load Balancer with ID: $LB_ID"
-          else
-            echo "Found existing Load Balancer with ID: $LB_ID"
+          echo "Searching for the Load Balancer IP..."
+          LB_IP=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[] | select(.name == "my-lb") | .ip[].ip_address')
+          if [ -z "$LB_IP" ]; then
+            echo "Error: Could not find the Load Balancer IP."
+            exit 1
           fi
+          echo "Found Load Balancer IP: $LB_IP"
+          echo "::set-output name=lb_ip::$LB_IP"
 
-      # Étape 7 : Tagging du Load Balancer avec un tag fixe
-      - name: Tag the Load Balancer with 'my-loadbalancer' tag
+      # Étape 7 : Mettre à jour les enregistrements DNS dans OVH
+      - name: Update OVH DNS Records
+        env:
+          OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
+          OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
+          OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
         run: |
-          scw lb tag "$LB_ID" tags=my-loadbalancer
-          echo "Load Balancer tagged successfully with 'my-loadbalancer' tag"
+          echo "Updating DNS records in OVH..."
+          LB_IP="${{ steps.get_lb_ip.outputs.lb_ip }}"
+          DOMAINS=("prometheus.my-soc.fr" "iris.my-soc.fr" "kibana.my-soc.fr" "doctobobo.my-soc.fr")
+          for DOMAIN in "${DOMAINS[@]}"; do
+            echo "Updating $DOMAIN to point to $LB_IP"
+            curl -X PUT \
+              -H "X-Ovh-Application: $OVH_APPLICATION_KEY" \
+              -H "X-Ovh-Consumer: $OVH_CONSUMER_KEY" \
+              -H "X-Ovh-Timestamp: $(date +%s)" \
+              -H "X-Ovh-Signature: $(echo -n $OVH_APPLICATION_SECRET | sha1sum | awk '{print $1}')" \
+              -H "Content-Type: application/json" \
+              -d '{"fieldType": "A", "target": "'"$LB_IP"'"}' \
+              https://eu.api.ovh.com/1.0/domain/zone/my-soc.fr/record/<record_id>
+          done
+          echo "DNS records updated."
 
-      # Étape 8 : Clean des Ressources
+      # Étape 8 : Clean des ressources
       - name: Delete network resources
         continue-on-error: true
         run: |
@@ -86,20 +101,24 @@ jobs:
           kubectl delete -f ./ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
 
+      # Étape 9 : Déployer NGINX Ingress Controller
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
           kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
 
+      # Étape 10 : Déployer cert-manager
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
           sleep 20
 
+      # Étape 11 : Déployer ClusterIssuer
       - name: Deploy ClusterIssuer
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
 
+      # Étape 12 : Déployer les Ingress
       - name: Deploy Ingress
         run: |
           kubectl apply -f ./Ingress/network.yaml
