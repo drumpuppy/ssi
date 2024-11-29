@@ -63,10 +63,11 @@ jobs:
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
 
-
-
-
       # Étape 6 : Mettre à jour les domaines OVH
+      - name: Install OVH Python client
+        run: |
+          pip install ovh
+      
       - name: Update OVH Domains
         env:
           OVH_APP_KEY: ${{ secrets.OVH_APP_KEY }}
@@ -75,3 +76,4 @@ jobs:
           LB_IP: ${{ env.lb_ip }}
         run: |
           python3 ./scripts/update_ovh_domains.py --ip $LB_IP
+
