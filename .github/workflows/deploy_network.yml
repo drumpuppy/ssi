@@ -90,19 +90,20 @@ jobs:
         id: get-lb-ip
         run: |
           lb_data=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
-          lb_id=$(echo "$lb_data" | jq -r '.[] | select(.type == "lb-s" and .status == "ready") | .id' | head -n 1)
-          if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
-            echo "Error: No active Load Balancer of type 'lb-s' found."
+          echo "Debugging Load Balancer Data: $lb_data"
+          if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
+            echo "Error: No Load Balancers found in the project."
             exit 1
           fi
-          lb_ip=$(echo "$lb_data" | jq -r --arg id "$lb_id" '.[] | select(.id == $id) | .ip')
+          # Récupérer le dernier Load Balancer créé
+          lb_ip=$(echo "$lb_data" | jq -r 'sort_by(.created_at) | last(.[]).ip')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
-            echo "Error: Load Balancer IP not found for ID $lb_id."
+            echo "Error: Load Balancer IP not found."
             exit 1
           fi
-          echo "Load Balancer ID: $lb_id"
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+
 
       # Étape 6 : Mettre à jour les domaines OVH
       - name: Update OVH Domains
