@@ -47,10 +47,10 @@ jobs:
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
-          lb_data=$(scw lb list --project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
+          lb_data=$(scw lb list --output json)
           echo "Debugging Load Balancer Data: $lb_data"
           if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
-            echo "Error: No Load Balancers found in the project."
+            echo "Error: No Load Balancers found."
             exit 1
           fi
           # Si plusieurs Load Balancers, sélectionnez le dernier ou celui désiré.
@@ -61,6 +61,7 @@ jobs:
           fi
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+
 
 
 
