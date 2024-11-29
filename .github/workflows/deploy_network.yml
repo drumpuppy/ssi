@@ -11,30 +11,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 2 : Installer les outils nécessaires
-      - name: Install dependencies
+      # Étape 2 : Installer Helm (si nécessaire)
+      - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 get_helm.sh
           ./get_helm.sh
-          curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
-          sudo apt-get update && sudo apt-get install -y python3 python3-pip
-          pip3 install ovh
 
-      - name: Debug secrets
+      # Étape 3 : Installer Scaleway CLI
+      - name: Install Scaleway CLI
         run: |
-          echo "SCW_ACCESS_KEY: ${SCW_ACCESS_KEY:0:5}"
-          echo "SCW_SECRET_KEY: ${SCW_SECRET_KEY:0:5}***"  # Montre seulement les 5 premiers caractères
-          echo "SCW_PROJECT_ID: ${SCW_PROJECT_ID:0:5}"
-          echo "SCW_ORGANIZATION_ID: ${SCW_ORGANIZATION_ID:0:5}"
-        env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-          SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
-          SCW_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
+          curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
+          scw version
 
-
-      # Étape 3 : Configurer Scaleway CLI
+      # Étape 4 : Configurer Scaleway CLI
       - name: Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
@@ -49,11 +39,32 @@ jobs:
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
           scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
-          scw config set default-project-id="${SCW_PROJECT_ID}"
+          scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
-      # Étape 4 : Déployer les ressources Kubernetes
+      # Étape 5 : Configurer kubeconfig
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
+            echo "Error: Kubernetes cluster ID not found or is not valid."
+            exit 1
+          fi
+          echo "Cluster ID: $cluster_id"
+          scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
+
+      # Étape 6 : Clean des Ressources
+      - name: Delete network resources
+        continue-on-error: true
+        run: |
+          kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
+          kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
+          kubectl delete -f ./ingress/clusterIssuer.yaml -n default
+          kubectl delete -f ./Ingress/network.yaml
+
+
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
@@ -72,7 +83,11 @@ jobs:
         run: |
           kubectl apply -f ./Ingress/network.yaml
 
-      # Étape 5 : Récupérer l'IP du Load Balancer
+
+
+
+
+          # Étape 5 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
@@ -98,4 +113,3 @@ jobs:
           LB_IP: ${{ env.lb_ip }}
         run: |
           python3 ./scripts/update_ovh_domains.py --ip $LB_IP
-
