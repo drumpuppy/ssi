@@ -1,4 +1,18 @@
- # Étape 5 : Récupérer l'IP du Load Balancer
+name: Deploy OVH
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-network:
+    runs-on: ubuntu-latest
+    steps:
+      # Étape 1 : Checkout du dépôt
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+
+# Étape 5 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
