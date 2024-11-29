@@ -4,7 +4,7 @@ const { db } = global;
 
 router.get("/Medecin", async (req, res) => {
   try {
-    const getAllMedicinesQuery = `SELECT * FROM medecin`;
+    const getAllMedicinesQuery = `SELECT * FROM Medecin`;
     const medicines = await db.query(getAllMedicinesQuery);
     res.status(200).json({ medicines });
   } catch (error) {
