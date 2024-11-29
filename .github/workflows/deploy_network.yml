@@ -6,26 +6,22 @@ on:
 jobs:
   deploy-network:
     runs-on: ubuntu-latest
-
     steps:
       # Étape 1 : Checkout du dépôt
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 2 : Installer Helm
-      - name: Install Helm
+      # Étape 2 : Installer les outils nécessaires
+      - name: Install dependencies
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 get_helm.sh
           ./get_helm.sh
-
-      # Étape 3 : Installer Scaleway CLI
-      - name: Install Scaleway CLI
-        run: |
           curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
-          scw version
+          sudo apt-get update && sudo apt-get install -y python3 python3-pip
+          pip3 install ovh
 
-      # Étape 4 : Configurer Scaleway CLI
+      # Étape 3 : Configurer Scaleway CLI
       - name: Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
@@ -40,85 +36,53 @@ jobs:
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
           scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
-          scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
+          scw config set default-project-id="${SCW_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
-      # Étape 5 : Configurer kubeconfig
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
-          if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
-            echo "Error: Kubernetes cluster ID not found or is not valid."
-            exit 1
-          fi
-          echo "Cluster ID: $cluster_id"
-          scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
-
-      # Étape 6 : Récupérer l'adresse IP du Load Balancer
-      - name: Get Load Balancer IP
-        id: get_lb_ip
-        run: |
-          echo "Searching for the Load Balancer IP..."
-          LB_IP=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[] | select(.name == "my-lb") | .ip[].ip_address')
-          if [ -z "$LB_IP" ]; then
-            echo "Error: Could not find the Load Balancer IP."
-            exit 1
-          fi
-          echo "Found Load Balancer IP: $LB_IP"
-          echo "::set-output name=lb_ip::$LB_IP"
-
-      # Étape 7 : Mettre à jour les enregistrements DNS dans OVH
-      - name: Update OVH DNS Records
-        env:
-          OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
-          OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
-          OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
-        run: |
-          echo "Updating DNS records in OVH..."
-          LB_IP="${{ steps.get_lb_ip.outputs.lb_ip }}"
-          DOMAINS=("prometheus.my-soc.fr" "iris.my-soc.fr" "kibana.my-soc.fr" "doctobobo.my-soc.fr")
-          for DOMAIN in "${DOMAINS[@]}"; do
-            echo "Updating $DOMAIN to point to $LB_IP"
-            curl -X PUT \
-              -H "X-Ovh-Application: $OVH_APPLICATION_KEY" \
-              -H "X-Ovh-Consumer: $OVH_CONSUMER_KEY" \
-              -H "X-Ovh-Timestamp: $(date +%s)" \
-              -H "X-Ovh-Signature: $(echo -n $OVH_APPLICATION_SECRET | sha1sum | awk '{print $1}')" \
-              -H "Content-Type: application/json" \
-              -d '{"fieldType": "A", "target": "'"$LB_IP"'"}' \
-              https://eu.api.ovh.com/1.0/domain/zone/my-soc.fr/record/<record_id>
-          done
-          echo "DNS records updated."
-
-      # Étape 8 : Clean des ressources
-      - name: Delete network resources
-        continue-on-error: true
-        run: |
-          kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
-          kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
-          kubectl delete -f ./ingress/clusterIssuer.yaml -n default
-          kubectl delete -f ./Ingress/network.yaml
-
-      # Étape 9 : Déployer NGINX Ingress Controller
+      # Étape 4 : Déployer les ressources Kubernetes
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
           kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
 
-      # Étape 10 : Déployer cert-manager
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
           sleep 20
 
-      # Étape 11 : Déployer ClusterIssuer
       - name: Deploy ClusterIssuer
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
 
-      # Étape 12 : Déployer les Ingress
       - name: Deploy Ingress
         run: |
           kubectl apply -f ./Ingress/network.yaml
+
+      # Étape 5 : Récupérer l'IP du Load Balancer
+      - name: Get Load Balancer IP
+        id: get-lb-ip
+        run: |
+          lb_id=$(scw lb list name=k8s-cluster-lb project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$lb_id" || "$lb_id" == "null" ]]; then
+            echo "Error: Load Balancer ID not found."
+            exit 1
+          fi
+          lb_ip=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].ip')
+          if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
+            echo "Error: Load Balancer IP not found."
+            exit 1
+          fi
+          echo "Load Balancer IP: $lb_ip"
+          echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+
+      # Étape 6 : Mettre à jour les domaines OVH
+      - name: Update OVH Domains
+        env:
+          OVH_APP_KEY: ${{ secrets.OVH_APP_KEY }}
+          OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}
+          OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+          LB_IP: ${{ env.lb_ip }}
+        run: |
+          python3 ./scripts/update_ovh_domains.py --ip $LB_IP
+
