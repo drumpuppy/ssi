@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 2 : Installer Helm (si nécessaire)
+      # Étape 2 : Installer Helm
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -43,28 +43,52 @@ jobs:
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
-      # Étape 5 : Configurer kubeconfig
-      - name: Configure kubeconfig
+      # Étape 5 : Associer un tag fixe au Load Balancer
+      - name: Tag Load Balancer
         run: |
-          mkdir -p ~/.kube
-          cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
-          if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
-            echo "Error: Kubernetes cluster ID not found or is not valid."
+          echo "Tagging the Load Balancer with 'my-loadbalancer' tag..."
+          LB_ID=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$LB_ID" || "$LB_ID" == "null" ]]; then
+            echo "Error: No Load Balancer found in the project."
             exit 1
           fi
-          echo "Cluster ID: $cluster_id"
-          scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
+          echo "Found Load Balancer ID: $LB_ID"
+          scw lb update id="$LB_ID" tags="my-loadbalancer"
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
 
-      # Étape 6 : Clean des Ressources
-      - name: Delete network resources
-        continue-on-error: true
+      # Étape 6 : Récupérer l'adresse IP publique via le tag
+      - name: Get Load Balancer Public IP
+        id: get_lb_ip
         run: |
-          kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
-          kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
-          kubectl delete -f ./ingress/clusterIssuer.yaml -n default
-          kubectl delete -f ./Ingress/network.yaml
+          echo "Fetching Load Balancer by tag 'my-loadbalancer'..."
+          LB_JSON=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
+          LB_ID=$(echo "$LB_JSON" | jq -r '.[] | select(.tags[] == "my-loadbalancer") | .id')
+          if [[ -z "$LB_ID" || "$LB_ID" == "null" ]]; then
+            echo "Error: No Load Balancer found with the tag 'my-loadbalancer'."
+            exit 1
+          fi
+          echo "Found Load Balancer ID: $LB_ID"
+          PUBLIC_IP=$(scw lb get id=$LB_ID --output json | jq -r '.ip')
+          if [[ -z "$PUBLIC_IP" || "$PUBLIC_IP" == "null" ]]; then
+            echo "Error: Public IP not found for Load Balancer."
+            exit 1
+          fi
+          echo "Public IP: $PUBLIC_IP"
+          echo "::set-output name=public_ip::$PUBLIC_IP"
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
 
-      # Étape 7 : Déployer les Ressources Réseau
+      # Étape 7 : Mettre à jour les DNS avec l'IP du Load Balancer
+      - name: Update DNS Records
+        run: |
+          PUBLIC_IP="${{ steps.get_lb_ip.outputs.public_ip }}"
+          echo "Updating DNS records with IP: $PUBLIC_IP"
+          python3 ./dns_update.py "$PUBLIC_IP"
+
+      # Étape 8 : Déploiement des ressources réseau (Ingress, cert-manager)
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
@@ -82,56 +106,3 @@ jobs:
       - name: Deploy Ingress
         run: |
           kubectl apply -f ./Ingress/network.yaml
-
-      # Étape 8 : Récupérer l'IP Publique du Load Balancer
-      - name: Get Public IP of Load Balancer
-        id: get_lb_ip
-        run: |
-          LB_ID=$(scw lb list name=my-lb project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
-          if [[ -z "$LB_ID" || "$LB_ID" == "null" ]]; then
-            echo "Error: Load Balancer ID not found or is invalid."
-            exit 1
-          fi
-          echo "Load Balancer ID: $LB_ID"
-          PUBLIC_IP=$(scw lb get id=$LB_ID --output json | jq -r '.ip')
-          if [[ -z "$PUBLIC_IP" || "$PUBLIC_IP" == "null" ]]; then
-            echo "Error: Public IP not found for Load Balancer."
-            exit 1
-          fi
-          echo "::set-output name=public_ip::$PUBLIC_IP"
-        env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-
-      # Étape 9 : Mettre à Jour les Enregistrements DNS via OVH
-      - name: Update DNS Records via OVH
-        run: |
-          DOMAIN="my-soc.fr"
-          SUBDOMAINS=("prometheus" "iris" "kibana" "doctobobo")
-          PUBLIC_IP="${{ steps.get_lb_ip.outputs.public_ip }}"
-          
-          for SUBDOMAIN in "${SUBDOMAINS[@]}"; do
-            RECORD_ID=$(curl -s -X GET -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
-              -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
-              "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/record?fieldType=A&subDomain=$SUBDOMAIN" \
-              | jq -r '.[0]')
-            
-            if [[ -n "$RECORD_ID" ]]; then
-              echo "Updating DNS record for $SUBDOMAIN.$DOMAIN with IP $PUBLIC_IP"
-              curl -s -X PUT -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
-                -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
-                -d "{\"target\":\"$PUBLIC_IP\"}" \
-                "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/record/$RECORD_ID"
-            else
-              echo "Creating new DNS record for $SUBDOMAIN.$DOMAIN with IP $PUBLIC_IP"
-              curl -s -X POST -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
-                -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
-                -d "{\"fieldType\":\"A\",\"subDomain\":\"$SUBDOMAIN\",\"target\":\"$PUBLIC_IP\"}" \
-                "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/record"
-            fi
-          done
-
-          # Commit changes to the DNS zone
-          curl -s -X POST -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
-            -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
-            "https://eu.api.ovh.com/1.0/domain/zone/$DOMAIN/refresh"
