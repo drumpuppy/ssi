@@ -47,14 +47,14 @@ jobs:
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
-          lb_data=$(scw lb list --project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
+          lb_data=$(scw lb ip list --output json)
           echo "Debugging Load Balancer Data: $lb_data"
           if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
-            echo "Error: No Load Balancers found in the project."
+            echo "Error: No Load Balancer IPs found."
             exit 1
           fi
-          # Si plusieurs Load Balancers, sélectionnez le dernier ou celui désiré.
-          lb_ip=$(echo "$lb_data" | jq -r '.[0].ip')
+          # Extraction de l'adresse IP à partir du champ 'ip_address'
+          lb_ip=$(echo "$lb_data" | jq -r '.[0].ip_address')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
             echo "Error: Load Balancer IP not found."
             exit 1
@@ -63,13 +63,35 @@ jobs:
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
 
-
       # Étape 6 : Mettre à jour les domaines OVH
-      - name: Update OVH Domains
-        env:
-          OVH_APP_KEY: ${{ secrets.OVH_APP_KEY }}
-          OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}
-          OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
-          LB_IP: ${{ env.lb_ip }}
+      - name: Install OVH Python client
         run: |
-          python3 ./scripts/update_ovh_domains.py --ip $LB_IP
+          pip install ovh
+
+      - name: Test connectivity OVH via API
+        run: |
+          python3 -c "
+          import ovh
+          
+          # Créer un client API OVH avec vos clés
+          client = ovh.Client(
+              endpoint='ovh-eu',
+              application_key='b56afcfd478f31fa',
+              application_secret='625b16511d4dae0b5f32e4ac74fc9557',
+              consumer_key='b8027bb4060e0a5fa5b0899f12884530'
+          )
+          
+          # Tester la connexion avec une requête simple
+          try:
+              # Vérifier les informations sur le serveur OVH
+              response = client.get('/me')
+              print('Connexion réussie : ', response)
+          except ovh.exceptions.APIError as e:
+              print('Erreur API : ', e)
+              exit(1)
+          "
+
+
+      
+
+
