@@ -143,103 +143,103 @@ module.exports = router;
 
 ///////////////////////////// files
 
-const AWS = require('aws-sdk');
-const multer = require('multer');
+// const AWS = require('aws-sdk');
+// const multer = require('multer');
 
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION
-});
-
-
-const s3 = new AWS.S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
-});
-
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5 MB max file size
-    }
-});
-
-router.post('/upload/:appointmentId', upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).send('No file uploaded.');
-
-  const params = {
-      Bucket: process.env.AWS_S3_BUCKET,  // Ensure this is correctly set
-      Key: `appointments/${req.params.appointmentId}/${req.file.originalname}`,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype
-  };
-
-  try {
-      const data = await s3.upload(params).promise();
-      res.send({ message: 'File uploaded successfully', url: data.Location });
-  } catch (err) {
-      console.error('Upload error:', err);
-      res.status(500).send('Failed to upload file.');
-  }
-});
+// AWS.config.update({
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   region: process.env.AWS_REGION
+// });
 
 
-router.delete('/delete/:appointmentId/:filename', async (req, res) => {
-    const params = {
-        Bucket: process.env.AWS_S3_BUCKET,
-        Key: `appointments/${req.params.appointmentId}/${req.params.filename}`
-    };
+// const s3 = new AWS.S3({
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//     region: process.env.AWS_REGION
+// });
 
-    try {
-        await s3.deleteObject(params).promise();
-        res.send({ message: 'File deleted successfully' });
-    } catch (err) {
-        console.error('Delete error:', err);
-        res.status(500).send('Failed to delete file.');
-    }
-});
+// const upload = multer({
+//     storage: multer.memoryStorage(),
+//     limits: {
+//         fileSize: 5 * 1024 * 1024 // 5 MB max file size
+//     }
+// });
 
-router.get('/files/:appointmentId', async (req, res) => {
-  const { appointmentId } = req.params;
-  const params = {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Prefix: `appointments/${appointmentId}/`
-  };
+// router.post('/upload/:appointmentId', upload.single('file'), async (req, res) => {
+//   if (!req.file) return res.status(400).send('No file uploaded.');
 
-  try {
-      const s3Data = await s3.listObjectsV2(params).promise();
-      const files = s3Data.Contents.map(file => ({
-          name: file.Key.split('/').pop(),
-          url: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${file.Key}`,
-          lastModified: file.LastModified,
-          size: file.Size
-      }));
-      res.json({ files });
-  } catch (err) {
-      console.error('Error listing files:', err);
-      res.status(500).send('Failed to list files.');
-  }
-});
+//   const params = {
+//       Bucket: process.env.AWS_S3_BUCKET,  // Ensure this is correctly set
+//       Key: `appointments/${req.params.appointmentId}/${req.file.originalname}`,
+//       Body: req.file.buffer,
+//       ContentType: req.file.mimetype
+//   };
 
-// Generate a signed URL for download
-router.get('/download/:appointmentId/:filename', async (req, res) => {
-  const { appointmentId, filename } = req.params;
-  const params = {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: `appointments/${appointmentId}/${filename}`,
-      Expires: 60 // The URL will expire in 60 seconds
-  };
+//   try {
+//       const data = await s3.upload(params).promise();
+//       res.send({ message: 'File uploaded successfully', url: data.Location });
+//   } catch (err) {
+//       console.error('Upload error:', err);
+//       res.status(500).send('Failed to upload file.');
+//   }
+// });
 
-  try {
-      const signedUrl = s3.getSignedUrl('getObject', params);
-      res.json({ url: signedUrl });
-  } catch (err) {
-      console.error('Error generating signed URL:', err);
-      res.status(500).send('Failed to generate signed URL.');
-  }
-});
+
+// router.delete('/delete/:appointmentId/:filename', async (req, res) => {
+//     const params = {
+//         Bucket: process.env.AWS_S3_BUCKET,
+//         Key: `appointments/${req.params.appointmentId}/${req.params.filename}`
+//     };
+
+//     try {
+//         await s3.deleteObject(params).promise();
+//         res.send({ message: 'File deleted successfully' });
+//     } catch (err) {
+//         console.error('Delete error:', err);
+//         res.status(500).send('Failed to delete file.');
+//     }
+// });
+
+// router.get('/files/:appointmentId', async (req, res) => {
+//   const { appointmentId } = req.params;
+//   const params = {
+//       Bucket: process.env.AWS_S3_BUCKET,
+//       Prefix: `appointments/${appointmentId}/`
+//   };
+
+//   try {
+//       const s3Data = await s3.listObjectsV2(params).promise();
+//       const files = s3Data.Contents.map(file => ({
+//           name: file.Key.split('/').pop(),
+//           url: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${file.Key}`,
+//           lastModified: file.LastModified,
+//           size: file.Size
+//       }));
+//       res.json({ files });
+//   } catch (err) {
+//       console.error('Error listing files:', err);
+//       res.status(500).send('Failed to list files.');
+//   }
+// });
+
+// // Generate a signed URL for download
+// router.get('/download/:appointmentId/:filename', async (req, res) => {
+//   const { appointmentId, filename } = req.params;
+//   const params = {
+//       Bucket: process.env.AWS_S3_BUCKET,
+//       Key: `appointments/${appointmentId}/${filename}`,
+//       Expires: 60 // The URL will expire in 60 seconds
+//   };
+
+//   try {
+//       const signedUrl = s3.getSignedUrl('getObject', params);
+//       res.json({ url: signedUrl });
+//   } catch (err) {
+//       console.error('Error generating signed URL:', err);
+//       res.status(500).send('Failed to generate signed URL.');
+//   }
+// });
 
 
 

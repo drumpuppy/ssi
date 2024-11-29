@@ -43,59 +43,7 @@ export default function PatientCard({
   patientName,
   doctorName
 }) {
-  const [files, setFiles] = useState([]);
-
-  useEffect(() => {
-    if (id) {
-      fetchFiles();
-    }
-  }, [id]); // Dependency on `id`
   
-
-  const fetchFiles = async () => {
-    if (id) { // Ensure `id` is not undefined
-      try {
-        const response = await axios.get(`/api/book/files/${id}`);
-        if (response.status === 200) {
-          setFiles(response.data.files);
-        } else {
-          console.error('Error with status code:', response.status);
-        }
-      } catch (error) {
-        console.error('Error fetching files:', error);
-      }
-    } else {
-      console.error('Appointment ID is undefined');
-    }
-  };
-  
-
-  const handleFileUpload = async (file) => {
-    console.log('Uploading file for appointment ID:', id); // Debugging log
-  
-    const formData = new FormData();
-    formData.append('file', file);
-  
-    try {
-      const response = await axios.post(`/api/book/upload/${id}`, formData);
-      console.log('File uploaded, server response:', response); // Debugging log
-      fetchFiles(); // Refresh file list after upload
-    } catch (error) {
-      console.error('Upload error:', error);
-    }
-  };
-
-  const downloadFile = async (fileName) => {
-    try {
-      const response = await axios.get(`/api/book/download/${id}/${fileName}`);
-      const signedUrl = response.data.url;
-      window.open(signedUrl, '_blank');
-    } catch (error) {
-      console.error('Download error:', error);
-    }
-  };
-  
-
 
   if (slot && slot.startTime && slot.endTime) {
 
@@ -113,27 +61,6 @@ export default function PatientCard({
           ) : (
             <Typography sx={styles.typo}>{answer}</Typography>
           )}
-          <input
-            type="file"
-            onChange={(e) => handleFileUpload(e.target.files[0])}
-            style={{ display: 'none' }}
-            id={`file-upload-${id}`}
-          />
-          <label htmlFor={`file-upload-${id}`}>
-            <Button sx={styles.fileUploadBtn} component="span">
-              Déposer un fichier
-            </Button>
-          </label>
-          {files.map(file => (
-            <Grid container key={file.name} sx={{ alignItems: 'center', marginTop: '10px' }}>
-              <Grid item xs={8}>
-              <Typography>{file.name}</Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Button sx={styles.fileUploadBtn} onClick={() => downloadFile(file.name)}>Télécharger</Button>
-              </Grid>
-            </Grid>
-          ))}
         </CardContent>
       </Card>
     );

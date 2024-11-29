@@ -16,22 +16,6 @@ const styles = {
     color: "white",
     fontSize: "15px",
   },
-  fileUploadBtn: {
-    background: "#fff",
-    color: "#0572E2",
-    margin: "10px 0",
-    '&:hover': {
-      background: "#ccc",
-    }
-  },
-  fileDeleteBtn: {
-    background: "red",
-    color: "#fff",
-    marginLeft: "10px",
-    '&:hover': {
-      background: "darkred",
-    }
-  },
   absoluteBox: {
     background: "#02298A",
     width: "200px",
@@ -57,69 +41,6 @@ export default function AppointmentCard({
   const [prescription, setPrescription] = useState(answer);
   const [files, setFiles] = useState([]);
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    uploadFile(file);
-  };
-
-  const uploadFile = async (file) => {
-    if (file.size > 5 * 1024 * 1024) { // Check if the file size exceeds 5 MB
-      alert('Upload failed: File size should not exceed 5 MB.');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await axios.post(`/api/book/upload/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      if (response.status === 200) {
-        alert('File uploaded successfully: ' + response.data.url);
-      } else {
-        alert('Upload failed: ' + response.data.message);
-      }
-      fetchFiles(); // Refresh files list
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Upload failed: An unexpected error occurred.');
-    }
-  };
-
-
-  const deleteFile = async (filename) => {
-    try {
-      const response = await axios.delete(`/api/book/delete/${id}/${filename}`);
-      if (response.status === 200) {
-        alert('File deleted successfully');
-      } else {
-        alert('Deletion failed: ' + response.data.message);
-      }
-      fetchFiles(); // Refresh files list
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Deletion failed: An unexpected error occurred.');
-    }
-  };
-
-
-  const fetchFiles = async () => {
-    try {
-      const response = await axios.get(`/api/book/files/${id}`);
-      if (response.status === 200) {
-        setFiles(response.data.files);
-      }
-    } catch (error) {
-      console.error('Error fetching files:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchFiles();
-  }, []);
 
   return (
     <Card sx={{ borderRadius: "20px", boxShadow: 3, background: "#0572E2", position: "relative" }}>
@@ -140,22 +61,6 @@ export default function AppointmentCard({
           sx={{ background: "white", borderRadius: "20px" }}
         />
         <Button sx={styles.appointBtn} size="large" onClick={() => onUpdate(id, prescription)}>Envoyer la réponse</Button>
-        <input type="file" onChange={handleFileChange} style={{ display: 'none' }} id="file-upload"/>
-        <label htmlFor="file-upload">
-          <Button variant="contained" component="span" sx={styles.fileUploadBtn}>
-            Déposer un fichier
-          </Button>
-        </label>
-        {files.map(file => (
-          <Grid container key={file.name} sx={{ alignItems: 'center', marginTop: '10px' }}>
-            <Grid item xs={8}>
-              <Typography>{file.name}</Typography>
-            </Grid>
-            <Grid item xs={4}>
-              <Button onClick={() => deleteFile(file.name)} sx={styles.fileDeleteBtn}>Supprimer</Button>
-            </Grid>
-          </Grid>
-        ))}
       </CardContent>
     </Card>
   );
