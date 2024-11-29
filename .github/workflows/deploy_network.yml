@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 2 : Installer Helm
+      # Étape 2 : Installer Helm (si nécessaire)
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -43,52 +43,49 @@ jobs:
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
-      # Étape 5 : Associer un tag fixe au Load Balancer
-      - name: Tag Load Balancer
+      # Étape 5 : Configurer kubeconfig
+      - name: Configure kubeconfig
         run: |
-          echo "Tagging the Load Balancer with 'my-loadbalancer' tag..."
-          LB_ID=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
-          if [[ -z "$LB_ID" || "$LB_ID" == "null" ]]; then
-            echo "Error: No Load Balancer found in the project."
+          mkdir -p ~/.kube
+          cluster_id=$(scw k8s cluster list name=k8s-cluster project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[0].id')
+          if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
+            echo "Error: Kubernetes cluster ID not found or is not valid."
             exit 1
           fi
-          echo "Found Load Balancer ID: $LB_ID"
-          scw lb update id="$LB_ID" tags="my-loadbalancer"
-        env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          echo "Cluster ID: $cluster_id"
+          scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      # Étape 6 : Récupérer l'adresse IP publique via le tag
-      - name: Get Load Balancer Public IP
-        id: get_lb_ip
+      # Étape 6 : Tagger le Load Balancer si ce n'est pas déjà fait
+      - name: Tag the Load Balancer if not already tagged
         run: |
-          echo "Fetching Load Balancer by tag 'my-loadbalancer'..."
-          LB_JSON=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json)
-          LB_ID=$(echo "$LB_JSON" | jq -r '.[] | select(.tags[] == "my-loadbalancer") | .id')
-          if [[ -z "$LB_ID" || "$LB_ID" == "null" ]]; then
-            echo "Error: No Load Balancer found with the tag 'my-loadbalancer'."
-            exit 1
-          fi
-          echo "Found Load Balancer ID: $LB_ID"
-          PUBLIC_IP=$(scw lb get id=$LB_ID --output json | jq -r '.ip')
-          if [[ -z "$PUBLIC_IP" || "$PUBLIC_IP" == "null" ]]; then
-            echo "Error: Public IP not found for Load Balancer."
-            exit 1
-          fi
-          echo "Public IP: $PUBLIC_IP"
-          echo "::set-output name=public_ip::$PUBLIC_IP"
-        env:
-          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          # Chercher si un Load Balancer avec le tag 'my-loadbalancer' existe
+          LB_ID=$(scw lb list project-id=${{ secrets.SCW_PROJECT_ID }} --output json | jq -r '.[] | select(.tags | index("my-loadbalancer")) | .id')
 
-      # Étape 7 : Mettre à jour les DNS avec l'IP du Load Balancer
-      - name: Update DNS Records
+          # Si le Load Balancer n'est pas trouvé, le créer et le taguer
+          if [ -z "$LB_ID" ]; then
+            echo "No Load Balancer with the tag found. Creating a new one..."
+            # Remplace cette commande par celle qui crée ton Load Balancer
+            LB_ID=$(scw lb create name="my-lb" tags="my-loadbalancer" frontends=[...])
+            echo "Created Load Balancer with ID: $LB_ID"
+          else
+            echo "Found existing Load Balancer with ID: $LB_ID"
+          fi
+
+      # Étape 7 : Tagging du Load Balancer avec un tag fixe
+      - name: Tag the Load Balancer with 'my-loadbalancer' tag
         run: |
-          PUBLIC_IP="${{ steps.get_lb_ip.outputs.public_ip }}"
-          echo "Updating DNS records with IP: $PUBLIC_IP"
-          python3 ./dns_update.py "$PUBLIC_IP"
+          scw lb tag "$LB_ID" tags=my-loadbalancer
+          echo "Load Balancer tagged successfully with 'my-loadbalancer' tag"
 
-      # Étape 8 : Déploiement des ressources réseau (Ingress, cert-manager)
+      # Étape 8 : Clean des Ressources
+      - name: Delete network resources
+        continue-on-error: true
+        run: |
+          kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
+          kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
+          kubectl delete -f ./ingress/clusterIssuer.yaml -n default
+          kubectl delete -f ./Ingress/network.yaml
+
       - name: Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
