@@ -584,7 +584,7 @@ ingester:
   env: []
 
 ruler:
-  enabled: false
+  enabled: true
   
 
 querier:
@@ -935,7 +935,7 @@ nginx:
     extraMetrics: []
 
 store_gateway:
-  enabled: false
+  enabled: true
 
 compactor:
   enabled: true
