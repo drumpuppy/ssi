@@ -63,6 +63,13 @@ jobs:
       - name: Get DNS A records from OVH
         id: get-ovh-records
         run: |
+
+          curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
+          -H "X-Ovh-Application: $OVH_API_KEY" \
+          -H "X-Ovh-Consumer: $OVH_CONSUMER_KEY" \
+          -H "X-Ovh-Signature: $OVH_APP_SECRET" \
+          -H "X-Ovh-Timestamp: $(date +%s)"
+
           # Vérification des clés API
           echo "OVH_API_KEY: ${{ secrets.OVH_APP_KEY }}"
           echo "OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}"
