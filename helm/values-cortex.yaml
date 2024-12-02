@@ -324,8 +324,9 @@ distributor:
     name: ""
 
   serviceMonitor:
-    enabled: false
-    additionalLabels: {}
+    enabled: true
+    additionalLabels:
+      release: prometheus
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -438,8 +439,9 @@ ingester:
     name:
 
   serviceMonitor:
-    enabled: false
-    additionalLabels: {}
+    enabled: true
+    additionalLabels:
+      release: prometheus
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -598,8 +600,9 @@ querier:
     name: ""
 
   serviceMonitor:
-    enabled: false
-    additionalLabels: {}
+    enabled: true
+    additionalLabels:
+      release: prometheus
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -706,8 +709,9 @@ query_frontend:
     name: ""
 
   serviceMonitor:
-    enabled: false
-    additionalLabels: {}
+    enabled: true
+    additionalLabels:
+      release: prometheus
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -866,7 +870,9 @@ nginx:
   podLabels: {}
 
   # -- Pod Annotations
-  podAnnotations: {}
+  podAnnotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '8080'
 
   nodeSelector: {}
   topologySpreadConstraints: []
@@ -944,8 +950,9 @@ compactor:
     name: ""
 
   serviceMonitor:
-    enabled: false
-    additionalLabels: {}
+    enabled: true
+    additionalLabels:
+      release: prometheus
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
