@@ -137,6 +137,14 @@ jobs:
           kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
+      
+      - name: Clean Up Doctobobo
+        continue-on-error: true
+        run: |
+          echo "Attempting to clean up Doctobobo resources..."
+          kubectl delete -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
+          kubectl delete -f ./doctobobo/backend/backend-deployment.yaml -n doctobobo
+          kubectl delete -f doctobobo/frontend/frontend-deployment.yaml -n doctobobo
 
       - name: Delete network resources
         continue-on-error: true
