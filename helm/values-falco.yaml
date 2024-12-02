@@ -837,7 +837,7 @@ falco:
   # certain priority or higher are active and evaluated by Falco. Supported
   # levels: "emergency", "alert", "critical", "error", "warning", "notice",
   # "info", "debug"
-  priority: debug
+  priority: info
 
   # [Stable] `json_output`
   #
@@ -871,7 +871,7 @@ falco:
   # an "output" property like "Opened process %proc.name" the "message" field will
   # only contain "Opened process bash" whereas the "output" field will contain more
   # information.
-  json_include_message_property: false
+  json_include_message_property: true
 
   # [Stable] `buffered_outputs`
   #
@@ -955,9 +955,9 @@ falco:
   # message. Furthermore, the file will be closed and reopened if Falco receives
   # the SIGUSR1 signal.
   file_output:
-    enabled: false
+    enabled: true
     keep_alive: false
-    filename: ./events.txt
+    filename: /var/log/falco/falco.log
 
   # [Stable] `http_output`
   #
