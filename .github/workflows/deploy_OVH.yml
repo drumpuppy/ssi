@@ -7,68 +7,47 @@ jobs:
   deploy-network:
     runs-on: ubuntu-latest
     steps:
-      # Étape 1 : Checkout du dépôt
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Étape 2 : Installer Helm (si nécessaire)
-      - name: Install Helm
+      - name: Install required tools
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 get_helm.sh
           ./get_helm.sh
-
-      # Étape 3 : Installer Scaleway CLI
-      - name: Install Scaleway CLI
-        run: |
           curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
-          scw version
+          sudo apt-get install curl jq
 
-      # Étape 4 : Installer cURL
-      - name: Install cURL
-        run: sudo apt-get install curl
-  
-      # Étape 5 : Définir les variables d'environnement pour l'API OVH
       - name: Set environment variables for OVH API
         env:
           OVH_API_KEY: ${{ secrets.OVH_API_KEY }}
           OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
-          OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}  # Ajout de la clé secrète
+          OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}
         run: |
           echo "OVH_API_KEY=$OVH_API_KEY"
           echo "OVH_CONSUMER_KEY=$OVH_CONSUMER_KEY"
-          echo "OVH_APP_SECRET=$OVH_APP_SECRET"  # Affichage de la clé secrète
+          echo "OVH_APP_SECRET=$OVH_APP_SECRET"
 
-      # Étape 6 : Configurer Scaleway CLI
       - name: Configure Scaleway CLI
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
-          SCW_DEFAULT_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
-          SCW_DEFAULT_REGION: fr-par
-          SCW_DEFAULT_ZONE: fr-par-1
         run: |
           mkdir -p ~/.config/scw
           touch ~/.config/scw/config.yaml
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
-          scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
           scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
-          scw config set default-region="${SCW_DEFAULT_REGION}"
-          scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
-      # Étape 7 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
           lb_data=$(scw lb ip list --output json)
-          echo "Debugging Load Balancer Data: $lb_data"
           if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
             echo "Error: No Load Balancer IPs found."
             exit 1
           fi
-          # Extraction de l'adresse IP à partir du champ 'ip_address'
           lb_ip=$(echo "$lb_data" | jq -r '.[0].ip_address')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
             echo "Error: Load Balancer IP not found."
@@ -77,26 +56,18 @@ jobs:
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
-      # Étape 8 : Récupérer les enregistrements DNS de type A dans OVH
       - name: Get DNS A records from OVH
         id: get-ovh-records
         run: |
           RECORDS=$(curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
             -H "Authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
             -H "Accept: application/json")
-          
-          # Vérification de la réponse
           if [[ "$RECORDS" == *"Client::Unauthorized"* ]]; then
             echo "ERROR: Unauthorized access to OVH API. Please check your OVH API keys."
             exit 1
           fi
-          
           echo "OVH DNS Records: $RECORDS"
-          
-          # Extraction des IDs des enregistrements DNS de type A
           RECORD_IDS=$(echo $RECORDS | jq -r '.[].id')
-          
-          # Vérifier si des enregistrements DNS ont été trouvés
           if [[ -z "$RECORD_IDS" || "$RECORD_IDS" == "null" ]]; then
             echo "No DNS records found to update."
             exit 1
@@ -104,10 +75,8 @@ jobs:
           echo "Record IDs to update: $RECORD_IDS"
           echo "RECORD_IDS=$RECORD_IDS" >> $GITHUB_ENV
 
-      # Étape 9 : Mettre à jour les enregistrements DNS dans OVH avec la nouvelle IP
       - name: Update DNS records in OVH
         run: |
-          # Mettre à jour chaque enregistrement DNS avec la nouvelle IP
           for RECORD_ID in ${{ env.RECORD_IDS }}; do
             echo "Updating record $RECORD_ID with IP ${LB_IP}"
             curl -X PUT "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record/$RECORD_ID" \
