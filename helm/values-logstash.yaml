@@ -21,6 +21,13 @@ logstashPipeline:
       beats {
         port=>5044
       }
+      http {
+        port => 8080
+      }
+      file {
+        path => "/var/log/falco/falco.log"
+        start_position => "beginning"
+      }
     }
     output {
       elasticsearch {
@@ -28,6 +35,7 @@ logstashPipeline:
         cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
         user => '${ELASTICSEARCH_USERNAME}'
         password => '${ELASTICSEARCH_PASSWORD}'
+        index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
       }
     }
 
