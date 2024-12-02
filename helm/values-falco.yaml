@@ -24,7 +24,10 @@ fullnameOverride: ""
 namespaceOverride: ""
 
 # -- Add additional pod annotations
-podAnnotations: {}
+podAnnotations:
+  co.elastic.logs/enabled: "true"
+  co.elastic.logs/fileset.stdout: "true"
+  co.elastic.logs/module: "kubernetes"
 
 serviceAccount:
   # -- Specifies whether a service account should be created.
