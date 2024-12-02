@@ -77,10 +77,18 @@ jobs:
       # Étape 8 : Supprimer les anciens enregistrements DNS
       - name: Delete old DNS records
         run: |
+          # Récupérer les enregistrements DNS de type A
           RECORDS=$(curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
             -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
             -H "accept: application/json")
+          
+          # Affichage de la réponse pour débogage
+          echo "Response from OVH API: $RECORDS"
+          
+          # Extraction des IDs des enregistrements DNS
           RECORD_IDS=$(echo $RECORDS | jq -r '.[].id')
+          
+          # Vérification de la présence d'enregistrements à supprimer
           if [[ -z "$RECORD_IDS" || "$RECORD_IDS" == "null" ]]; then
             echo "No DNS records to delete."
           else
@@ -89,6 +97,7 @@ jobs:
                 -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}"
             done
           fi
+
 
       # Étape 9 : Créer de nouveaux enregistrements DNS
       - name: Create new DNS records
