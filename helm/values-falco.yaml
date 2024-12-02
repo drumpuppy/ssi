@@ -960,11 +960,11 @@ falco:
   #
   # -- Send logs to an HTTP endpoint or webhook.
   http_output:
-    enabled: false
-    url: ""
+    enabled: true
+    url: "http://elasticsearch-master.default.svc.cluster.local:9200/falco-alerts/_doc"
     user_agent: "falcosecurity/falco"
     # -- Tell Falco to not verify the remote server.
-    insecure: false
+    insecure: true
     # -- Path to the CA certificate that can verify the remote server.
     ca_cert: ""
     # -- Path to a specific file that will be used as the CA certificate store.
