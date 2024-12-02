@@ -68,9 +68,9 @@ jobs:
           OVH_CONSUMER_KEY=${{ secrets.OVH_CONSUMER_KEY }}
           OVH_APP_SECRET=${{ secrets.OVH_APP_SECRET }}
           TIMESTAMP=$(date +%s)
-          
-          # Calcul de la signature
-          SIGNATURE=$(echo -n "$OVH_API_KEY+$OVH_CONSUMER_KEY+$OVH_APP_SECRET+$TIMESTAMP" | openssl dgst -sha1 -binary | xxd -p)
+      
+          # Calcul de la signature en utilisant openssl pour générer le hash SHA1
+          SIGNATURE=$(echo -n "$OVH_API_KEY+$OVH_CONSUMER_KEY+$OVH_APP_SECRET+$TIMESTAMP" | openssl dgst -sha1 -binary | xxd -p -c 256)
       
           # Vérification des clés API
           echo "OVH_API_KEY: $OVH_API_KEY"
@@ -86,6 +86,9 @@ jobs:
       
           if [[ "$RECORDS" == *"Client::Unauthorized"* ]]; then
             echo "ERROR: Unauthorized access to OVH API. Please check your OVH API keys."
+            exit 1
+          elif [[ "$RECORDS" == *"Invalid signature"* ]]; then
+            echo "ERROR: Invalid signature. Please check the signature generation process."
             exit 1
           fi
       
