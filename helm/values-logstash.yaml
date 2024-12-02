@@ -19,20 +19,17 @@ logstashPipeline:
   logstash.conf: |
     input {
       beats {
-        port => 5044
+        port=>5044
       }
     }
-
     output {
       elasticsearch {
-        hosts => ["https://elasticsearch-master.default.svc.cluster.local:9200"]
+        hosts => "https://elasticsearch-master:9200"
         cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-        user => "${ELASTICSEARCH_USERNAME}"
-        password => "${ELASTICSEARCH_PASSWORD}"
-        index => "logs-%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+        user => '${ELASTICSEARCH_USERNAME}'
+        password => '${ELASTICSEARCH_PASSWORD}'
       }
     }
-
 
 # Allows you to add any pattern files in your custom pattern dir
 logstashPatternDir: "/usr/share/logstash/patterns/"
@@ -314,4 +311,3 @@ ingress:
   #  - secretName: logstash-example-tls
   #    hosts:
   #      - logstash-example.local
-
