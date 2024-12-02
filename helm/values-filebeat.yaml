@@ -35,15 +35,16 @@ daemonset:
   # such as filebeat.yml for daemonset
   filebeatConfig:
     filebeat.yml: |
-      # Enable modules management
-      filebeat.config:
-        modules:
-          path: /usr/share/filebeat/modules.d/*.yml
-          reload.enabled: true
-      
-      # Inputs for log files from containers and Falco
       filebeat.inputs:
+        - type: log
+          enabled: true
+          paths:
+            - /var/log/falco/falco.log
+          json.keys_under_root: true
+          json.add_error_key: true
+  
         - type: container
+          enabled: true
           paths:
             - /var/log/containers/*.log
           processors:
@@ -52,36 +53,17 @@ daemonset:
                 matchers:
                   - logs_path:
                       logs_path: "/var/log/containers/"
-        - type: log
-          paths:
-            - /var/log/falco/falco.log
-          fields:
-            service: falco
-          fields_under_root: true
-
-      # Add autodiscover for Prometheus and Istio
-      filebeat.autodiscover:
-        providers:
-          - type: kubernetes
-            templates:
-              - condition:
-                  equals:
-                    kubernetes.labels.app: prometheus
-                config:
-                  - module: prometheus
-                    metricsets: ["collector"]
-                    hosts: ["http://prometheus-server.default.svc.cluster.local:9090"]
-              - condition:
-                  equals:
-                    kubernetes.labels.app: istio-ingressgateway
-                config:
-                  - module: istio
-                    logs:
-                      - /var/log/containers/*istio*.log
-
-      # Output logs to Logstash
+  
+      output.elasticsearch:
+        hosts: ["https://elasticsearch-master.default.svc.cluster.local:9200"]
+        username: ${ELASTICSEARCH_USERNAME}
+        password: ${ELASTICSEARCH_PASSWORD}
+        protocol: https
+        ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
+  
       output.logstash:
-        hosts: ["logstash-logstash:5044"]
+        hosts: ["logstash-logstash.default.svc.cluster.local:5044"]
+
 
 
   # Only used when updateStrategy is set to "RollingUpdate"
