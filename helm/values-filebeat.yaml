@@ -54,13 +54,6 @@ daemonset:
                   - logs_path:
                       logs_path: "/var/log/containers/"
   
-      output.elasticsearch:
-        hosts: ["https://elasticsearch-master.default.svc.cluster.local:9200"]
-        username: ${ELASTICSEARCH_USERNAME}
-        password: ${ELASTICSEARCH_PASSWORD}
-        protocol: https
-        ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
-  
       output.logstash:
         hosts: ["logstash-logstash.default.svc.cluster.local:5044"]
 
