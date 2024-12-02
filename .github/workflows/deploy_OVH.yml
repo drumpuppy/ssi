@@ -64,7 +64,7 @@ jobs:
         id: get-ovh-records
         run: |
           # Vérification des clés API
-          echo "OVH_API_KEY: ${{ secrets.OVH_API_KEY }}"
+          echo "OVH_API_KEY: ${{ secrets.OVH_APP_KEY }}"
           echo "OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}"
           echo "OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}"
           
