@@ -66,57 +66,55 @@ jobs:
             echo "Error: No Load Balancer IPs found."
             exit 1
           fi
+          # Extraction de l'adresse IP à partir du champ 'ip_address'
           lb_ip=$(echo "$lb_data" | jq -r '.[0].ip_address')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
             echo "Error: Load Balancer IP not found."
             exit 1
           fi
           echo "Load Balancer IP: $lb_ip"
-          echo "LOAD_BALANCER_IP=$lb_ip" >> $GITHUB_ENV
+          echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
-      # Étape 8 : Supprimer les anciens enregistrements DNS
-      - name: Delete old DNS records
+      # Étape 8 : Récupérer les enregistrements DNS de type A dans OVH
+      - name: Get DNS A records from OVH
+        id: get-ovh-records
         run: |
-          # Récupérer les enregistrements DNS de type A
           RECORDS=$(curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
             -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
             -H "accept: application/json")
           
-          # Affichage de la réponse pour débogage
-          echo "Response from OVH API: $RECORDS"
+          # Vérification de la réponse
+          if [[ "$RECORDS" == *"Client::Unauthorized"* ]]; then
+            echo "ERROR: Unauthorized access to OVH API. Please check your OVH API keys."
+            exit 1
+          fi
           
-          # Extraction des IDs des enregistrements DNS
+          echo "OVH DNS Records: $RECORDS"
+          
+          # Extraction des IDs des enregistrements DNS de type A
           RECORD_IDS=$(echo $RECORDS | jq -r '.[].id')
           
-          # Vérification de la présence d'enregistrements à supprimer
+          # Vérifier si des enregistrements DNS ont été trouvés
           if [[ -z "$RECORD_IDS" || "$RECORD_IDS" == "null" ]]; then
-            echo "No DNS records to delete."
-          else
-            for RECORD_ID in $RECORD_IDS; do
-              curl -X DELETE "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record/$RECORD_ID" \
-                -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}"
-            done
+            echo "No DNS records found to update."
+            exit 1
           fi
+          echo "Record IDs to update: $RECORD_IDS"
+          echo "RECORD_IDS=$RECORD_IDS" >> $GITHUB_ENV
 
-
-      # Étape 9 : Créer de nouveaux enregistrements DNS
-      - name: Create new DNS records
+      # Étape 9 : Mettre à jour les enregistrements DNS dans OVH avec la nouvelle IP
+      - name: Update DNS records in OVH
         run: |
-          SUBDOMAINS=("prometheus" "iris" "kibana" "doctobobo")
-          for SUBDOMAIN in "${SUBDOMAINS[@]}"; do
-            curl -X POST "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record" \
+          # Mettre à jour chaque enregistrement DNS avec la nouvelle IP
+          for RECORD_ID in ${{ env.RECORD_IDS }}; do
+            echo "Updating record $RECORD_ID with IP ${LB_IP}"
+            curl -X PUT "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record/$RECORD_ID" \
+              -H "Authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
               -H "Content-Type: application/json" \
-              -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
               -d '{
-                "fieldType": "A",
-                "subDomain": "'"$SUBDOMAIN"'",
-                "target": "'"$LOAD_BALANCER_IP"'",
-                "ttl": 3600
-              }'
+                    "fieldType": "A",
+                    "target": "'${LB_IP}'",
+                    "subDomain": "www",
+                    "ttl": 3600
+                  }'
           done
-
-      # Étape 10 : Rafraîchir la zone DNS
-      - name: Refresh DNS zone
-        run: |
-          curl -X POST "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/refresh" \
-            -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}"
