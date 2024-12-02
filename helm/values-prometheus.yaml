@@ -279,12 +279,9 @@ server:
   ##
   remote_write:
     - url: "http://elasticsearch-master:9200"
-    - url: http://cortex-distributor:8080/api/prom/push
   ## https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_read
   ##
-  remoteRead:
-    - url: http://cortex-querier:8080/api/prom/read
-
+  remoteRead: []
 
   ## https://prometheus.io/docs/prometheus/latest/configuration/configuration/#tsdb
   ##
@@ -308,6 +305,7 @@ server:
   ## Set to null for argumentless flags
   ##
   extraArgs: {}
+    # web.enable-remote-write-receiver: null
 
   ## Additional InitContainers to initialize the pod
   ##
@@ -811,19 +809,15 @@ serverFiles:
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
             regex: true
-          - source_labels: [__meta_kubernetes_namespace]
-            action: keep
-            regex: ".*"  # Adjust this regex to include specific namespaces, if needed
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
             target_label: __metrics_path__
             regex: (.+)
-          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
             action: replace
             target_label: __address__
-            regex: (.+);(.+)
+            regex: (.+):(?:\d+);(.+)
             replacement: ${1}:${2}
-
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)
@@ -1234,11 +1228,7 @@ serverFiles:
 # adds additional scrape configs to prometheus.yml
 # must be a string so you have to add a | after extraScrapeConfigs:
 # example adds prometheus-blackbox-exporter scrape config
-extraScrapeConfigs: |
-  - job_name: 'elasticsearch'
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['elasticsearch-master.default.svc.cluster.local:9200']
+extraScrapeConfigs: []
 
 
 
