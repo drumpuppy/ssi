@@ -308,9 +308,9 @@ server:
   ## Set to null for argumentless flags
   ##
   extraArgs:
-    - "--storage.tsdb.retention.time=15d"
-    - "--web.enable-lifecycle"
-    - "--web.enable-admin-api"
+    storage.tsdb.retention.time: "15d"
+    web.enable-lifecycle: ""
+    web.enable-admin-api: ""
 
   ## Additional InitContainers to initialize the pod
   ##
@@ -1237,7 +1237,7 @@ serverFiles:
 # adds additional scrape configs to prometheus.yml
 # must be a string so you have to add a | after extraScrapeConfigs:
 # example adds prometheus-blackbox-exporter scrape config
-extraScrapeConfigs:
+extraScrapeConfigs: |
   - job_name: 'elasticsearch'
     metrics_path: /metrics
     static_configs:
