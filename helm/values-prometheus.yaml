@@ -307,9 +307,7 @@ server:
   ## Additional Prometheus server container arguments
   ## Set to null for argumentless flags
   ##
-  extraArgs:
-    web.enable-lifecycle: ""
-    web.enable-admin-api: ""
+  extraArgs: []
 
   ## Additional InitContainers to initialize the pod
   ##
