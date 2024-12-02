@@ -279,9 +279,12 @@ server:
   ##
   remote_write:
     - url: "http://elasticsearch-master:9200"
+    - url: http://cortex-distributor:8080/api/prom/push
   ## https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_read
   ##
-  remoteRead: []
+  remoteRead:
+    - url: http://cortex-querier:8080/api/prom/read
+
 
   ## https://prometheus.io/docs/prometheus/latest/configuration/configuration/#tsdb
   ##
