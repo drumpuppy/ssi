@@ -308,7 +308,6 @@ server:
   ## Set to null for argumentless flags
   ##
   extraArgs:
-    storage.tsdb.retention.time: "15d"
     web.enable-lifecycle: ""
     web.enable-admin-api: ""
 
