@@ -101,3 +101,53 @@ jobs:
           fi
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+
+
+      # Étape 8 : Installer ovh
+      - name: Install OVH Python SDK
+        run: |
+          pip install ovh
+
+      # Étape 9 : Gérer les domaines dans OVH
+      - name: Update OVH DNS Records
+        env:
+          OVH_APPLICATION_KEY: ${{ secrets.OVH_APP_KEY }}
+          OVH_APPLICATION_SECRET: ${{ secrets.OVH_APP_SECRET }}
+          OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+          LB_IP: ${{ env.lb_ip }}
+        run: |
+          python <<EOF
+          
+          
+          import ovh
+          import os
+          
+          # Configurer le client OVH
+          client = ovh.Client(
+              endpoint='ovh-eu',
+              application_key=os.getenv('OVH_APPLICATION_KEY'),
+              application_secret=os.getenv('OVH_APPLICATION_SECRET'),
+              consumer_key=os.getenv('OVH_CONSUMER_KEY'),
+          )
+          
+          # Domaine et IP du Load Balancer
+          domain = "my-soc.fr"
+          lb_ip = os.getenv('LB_IP')
+          subdomains = ["prometheus", "iris", "kibana", "doctobobo"]
+          
+          # Récupérer et supprimer les enregistrements DNS existants
+          for subdomain in subdomains:
+              records = client.get(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain)
+              for record_id in records:
+                  client.delete(f"/domain/zone/{domain}/record/{record_id}")
+                  print(f"Deleted record {record_id} for subdomain {subdomain}")
+          
+          # Ajouter de nouveaux enregistrements DNS
+          for subdomain in subdomains:
+              result = client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=lb_ip, ttl=0)
+              print(f"Created new record: {result}")
+          
+          # Rafraîchir la zone DNS
+          client.post(f"/domain/zone/{domain}/refresh")
+          print("DNS zone refreshed.")
+          EOF
