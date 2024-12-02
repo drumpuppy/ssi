@@ -73,7 +73,7 @@ jobs:
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-          sleep 20
+          sleep 30
 
       - name: Deploy ClusterIssuer
         run: |
@@ -133,7 +133,7 @@ jobs:
           # Domaine et IP du Load Balancer
           domain = "my-soc.fr"
           lb_ip = os.getenv('LB_IP')
-          subdomains = ["prometheus", "iris", "kibana", "doctobobo"]
+          subdomains = ["prometheus2", "iris2", "kibana2", "doctobobo2"]
           
           # Récupérer et supprimer les enregistrements DNS existants
           for subdomain in subdomains:
