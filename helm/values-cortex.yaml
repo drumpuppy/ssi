@@ -159,8 +159,9 @@ alertmanager:
     name: ""
 
   serviceMonitor:
-    enabled: false
-    additionalLabels: {}
+    enabled: true
+    additionalLabels:
+      release: prometheus
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
