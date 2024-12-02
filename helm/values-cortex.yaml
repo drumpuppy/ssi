@@ -584,7 +584,7 @@ ingester:
   env: []
 
 ruler:
-  enabled: true
+  enabled: false
   
 
 querier:
