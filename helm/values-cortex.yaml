@@ -159,9 +159,8 @@ alertmanager:
     name: ""
 
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
+    enabled: false
+    additionalLabels: {}
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -324,9 +323,8 @@ distributor:
     name: ""
 
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
+    enabled: false
+    additionalLabels: {}
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -439,9 +437,8 @@ ingester:
     name:
 
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
+    enabled: false
+    additionalLabels: {}
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -600,9 +597,8 @@ querier:
     name: ""
 
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
+    enabled: false
+    additionalLabels: {}
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -709,9 +705,8 @@ query_frontend:
     name: ""
 
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
+    enabled: false
+    additionalLabels: {}
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
@@ -870,9 +865,7 @@ nginx:
   podLabels: {}
 
   # -- Pod Annotations
-  podAnnotations:
-    prometheus.io/scrape: 'true'
-    prometheus.io/port: '8080'
+  podAnnotations: {}
 
   nodeSelector: {}
   topologySpreadConstraints: []
@@ -935,7 +928,7 @@ nginx:
     extraMetrics: []
 
 store_gateway:
-  enabled: true
+  enabled: false
 
 compactor:
   enabled: true
@@ -950,9 +943,8 @@ compactor:
     name: ""
 
   serviceMonitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
+    enabled: false
+    additionalLabels: {}
     relabelings: []
     metricRelabelings: []
     # -- Additional endpoint configuration https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
