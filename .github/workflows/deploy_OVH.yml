@@ -33,9 +33,11 @@ jobs:
         env:
           OVH_API_KEY: ${{ secrets.OVH_API_KEY }}
           OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+          OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}  # Ajout de la clé secrète
         run: |
           echo "OVH_API_KEY=$OVH_API_KEY"
           echo "OVH_CONSUMER_KEY=$OVH_CONSUMER_KEY"
+          echo "OVH_APP_SECRET=$OVH_APP_SECRET"  # Affichage de la clé secrète
 
       # Étape 6 : Configurer Scaleway CLI
       - name: Configure Scaleway CLI
@@ -80,8 +82,8 @@ jobs:
         id: get-ovh-records
         run: |
           RECORDS=$(curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
-            -H "authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
-            -H "accept: application/json")
+            -H "Authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
+            -H "Accept: application/json")
           
           # Vérification de la réponse
           if [[ "$RECORDS" == *"Client::Unauthorized"* ]]; then
