@@ -34,22 +34,34 @@ daemonset:
   # Allows you to add any config files in /usr/share/filebeat
   # such as filebeat.yml for daemonset
   filebeatConfig:
-    filebeat.yml: |
-      filebeat.inputs:
-        - type: container
-          paths:
-            - /var/log/containers/*.log
-          processors:
-            - add_kubernetes_metadata:
-                host: ${NODE_NAME}
-                matchers:
-                  - logs_path:
-                      logs_path: "/var/log/containers/"
-        - type: log
-          paths:
-            - /var/log/falco/falco.log
-      output.logstash:
-        hosts: ["logstash-logstash:5044"]
+  filebeat.yml: |
+    filebeat.modules:
+      - module: kubernetes
+        enabled: true
+        metricsets: ["state_node", "state_pod", "state_deployment"]
+        period: 10s
+        hosts: ["https://${KUBERNETES_HOST}:${KUBERNETES_PORT_443_TCP_PORT}"]
+        ssl.verification_mode: none
+      - module: prometheus
+        enabled: true
+        metricsets: ["collector"]
+        period: 10s
+        hosts: ["http://prometheus-server.default.svc.cluster.local:9090"]
+
+    filebeat.inputs:
+      - type: container
+        paths:
+          - /var/log/containers/*.log
+        processors:
+          - add_kubernetes_metadata:
+              host: ${NODE_NAME}
+              matchers:
+                - logs_path:
+                    logs_path: "/var/log/containers/"
+
+    output.logstash:
+      hosts: ["logstash-logstash:5044"]
+
 
   # Only used when updateStrategy is set to "RollingUpdate"
   maxUnavailable: 1
