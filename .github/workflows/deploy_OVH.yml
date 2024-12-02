@@ -63,23 +63,27 @@ jobs:
       - name: Get DNS A records from OVH
         id: get-ovh-records
         run: |
-
-          curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
-          -H "X-Ovh-Application: $OVH_API_KEY" \
-          -H "X-Ovh-Consumer: $OVH_CONSUMER_KEY" \
-          -H "X-Ovh-Signature: $OVH_APP_SECRET" \
-          -H "X-Ovh-Timestamp: $(date +%s)"
-
+          # Variables nécessaires
+          OVH_API_KEY=${{ secrets.OVH_APP_KEY }}
+          OVH_CONSUMER_KEY=${{ secrets.OVH_CONSUMER_KEY }}
+          OVH_APP_SECRET=${{ secrets.OVH_APP_SECRET }}
+          TIMESTAMP=$(date +%s)
+          
+          # Calcul de la signature
+          SIGNATURE=$(echo -n "$OVH_API_KEY+$OVH_CONSUMER_KEY+$OVH_APP_SECRET+$TIMESTAMP" | openssl dgst -sha1 -binary | xxd -p)
+      
           # Vérification des clés API
-          echo "OVH_API_KEY: ${{ secrets.OVH_APP_KEY }}"
-          echo "OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}"
-          echo "OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}"
-          
-          # Effectuer la requête vers l'API OVH
+          echo "OVH_API_KEY: $OVH_API_KEY"
+          echo "OVH_CONSUMER_KEY: $OVH_CONSUMER_KEY"
+          echo "OVH_APP_SECRET: $OVH_APP_SECRET"
+      
+          # Effectuer la requête vers l'API OVH pour obtenir les enregistrements DNS de type A
           RECORDS=$(curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
-            -H "Authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
-            -H "Accept: application/json")
-          
+            -H "X-Ovh-Application: $OVH_API_KEY" \
+            -H "X-Ovh-Consumer: $OVH_CONSUMER_KEY" \
+            -H "X-Ovh-Signature: $SIGNATURE" \
+            -H "X-Ovh-Timestamp: $TIMESTAMP")
+      
           if [[ "$RECORDS" == *"Client::Unauthorized"* ]]; then
             echo "ERROR: Unauthorized access to OVH API. Please check your OVH API keys."
             exit 1
@@ -97,14 +101,16 @@ jobs:
           
           echo "Record IDs to update: $RECORD_IDS"
           echo "RECORD_IDS=$RECORD_IDS" >> $GITHUB_ENV
-
-
+      
       - name: Update DNS records in OVH
         run: |
           for RECORD_ID in ${{ env.RECORD_IDS }}; do
             echo "Updating record $RECORD_ID with IP ${LB_IP}"
             curl -X PUT "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record/$RECORD_ID" \
-              -H "Authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
+              -H "X-Ovh-Application: ${{ secrets.OVH_APP_KEY }}" \
+              -H "X-Ovh-Consumer: ${{ secrets.OVH_CONSUMER_KEY }}" \
+              -H "X-Ovh-Signature: $SIGNATURE" \
+              -H "X-Ovh-Timestamp: $TIMESTAMP" \
               -H "Content-Type: application/json" \
               -d '{
                     "fieldType": "A",
