@@ -63,21 +63,34 @@ jobs:
       - name: Get DNS A records from OVH
         id: get-ovh-records
         run: |
+          # Vérification des clés API
+          echo "OVH_API_KEY: ${{ secrets.OVH_API_KEY }}"
+          echo "OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}"
+          echo "OVH_APP_SECRET: ${{ secrets.OVH_APP_SECRET }}"
+          
+          # Effectuer la requête vers l'API OVH
           RECORDS=$(curl -X GET "https://eu.api.ovh.com/v1/domain/zone/my-soc.fr/record?fieldType=A" \
             -H "Authorization: Bearer ${{ secrets.OVH_CONSUMER_KEY }}" \
             -H "Accept: application/json")
+          
           if [[ "$RECORDS" == *"Client::Unauthorized"* ]]; then
             echo "ERROR: Unauthorized access to OVH API. Please check your OVH API keys."
             exit 1
           fi
+      
           echo "OVH DNS Records: $RECORDS"
+          
+          # Extraire les IDs des enregistrements DNS de type A
           RECORD_IDS=$(echo $RECORDS | jq -r '.[].id')
+          
           if [[ -z "$RECORD_IDS" || "$RECORD_IDS" == "null" ]]; then
             echo "No DNS records found to update."
             exit 1
           fi
+          
           echo "Record IDs to update: $RECORD_IDS"
           echo "RECORD_IDS=$RECORD_IDS" >> $GITHUB_ENV
+
 
       - name: Update DNS records in OVH
         run: |
