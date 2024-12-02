@@ -34,33 +34,54 @@ daemonset:
   # Allows you to add any config files in /usr/share/filebeat
   # such as filebeat.yml for daemonset
   filebeatConfig:
-  filebeat.yml: |
-    filebeat.modules:
-      - module: kubernetes
-        enabled: true
-        metricsets: ["state_node", "state_pod", "state_deployment"]
-        period: 10s
-        hosts: ["https://${KUBERNETES_HOST}:${KUBERNETES_PORT_443_TCP_PORT}"]
-        ssl.verification_mode: none
-      - module: prometheus
-        enabled: true
-        metricsets: ["collector"]
-        period: 10s
-        hosts: ["http://prometheus-server.default.svc.cluster.local:9090"]
+    filebeat.yml: |
+      # Enable modules management
+      filebeat.config:
+        modules:
+          path: /usr/share/filebeat/modules.d/*.yml
+          reload.enabled: true
+      
+      # Inputs for log files from containers and Falco
+      filebeat.inputs:
+        - type: container
+          paths:
+            - /var/log/containers/*.log
+          processors:
+            - add_kubernetes_metadata:
+                host: ${NODE_NAME}
+                matchers:
+                  - logs_path:
+                      logs_path: "/var/log/containers/"
+        - type: log
+          paths:
+            - /var/log/falco/falco.log
+          fields:
+            service: falco
+          fields_under_root: true
 
-    filebeat.inputs:
-      - type: container
-        paths:
-          - /var/log/containers/*.log
-        processors:
-          - add_kubernetes_metadata:
-              host: ${NODE_NAME}
-              matchers:
-                - logs_path:
-                    logs_path: "/var/log/containers/"
+      # Add autodiscover for Prometheus and Istio
+      filebeat.autodiscover:
+        providers:
+          - type: kubernetes
+            templates:
+              - condition:
+                  equals:
+                    kubernetes.labels.app: prometheus
+                config:
+                  - module: prometheus
+                    metricsets: ["collector"]
+                    hosts: ["http://prometheus-server.default.svc.cluster.local:9090"]
+              - condition:
+                  equals:
+                    kubernetes.labels.app: istio-ingressgateway
+                config:
+                  - module: istio
+                    logs:
+                      - /var/log/containers/*istio*.log
 
-    output.logstash:
-      hosts: ["logstash-logstash:5044"]
+      # Output logs to Logstash
+      output.logstash:
+        hosts: ["logstash-logstash:5044"]
 
 
   # Only used when updateStrategy is set to "RollingUpdate"
@@ -115,10 +136,12 @@ deployment:
           name: elasticsearch-master-credentials
           key: password
   # Allows you to add any config files in /usr/share/filebeat
-  extraVolumes: []
-  # - name: extras
-  #   emptyDir: {}
-  extraVolumeMounts: []
+  extraVolumes:
+    - name: modules
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: modules
+      mountPath: /usr/share/filebeat/modules.d
   # - name: extras
   #   mountPath: /usr/share/extras
   #   readOnly: true
