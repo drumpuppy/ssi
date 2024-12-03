@@ -69,15 +69,7 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
           kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
-
-      - name: Deploy cert-manager
-        run: |
-          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-          sleep 30
-
-      - name: Deploy ClusterIssuer
-        run: |
-          kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
+          sleep 10
 
       - name: Deploy Ingress
         run: |
@@ -150,4 +142,18 @@ jobs:
           # Rafraîchir la zone DNS
           client.post(f"/domain/zone/{domain}/refresh")
           print("DNS zone refreshed.")
+          sleep 20
           EOF
+
+      - name: Deploy cert-manager
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+          sleep 20
+
+      - name: Deploy ClusterIssuer
+        run: |
+          kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
+
+      
+
+      
