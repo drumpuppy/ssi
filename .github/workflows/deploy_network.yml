@@ -142,8 +142,8 @@ jobs:
           # Rafraîchir la zone DNS
           client.post(f"/domain/zone/{domain}/refresh")
           print("DNS zone refreshed.")
-          sleep 20
           EOF
+          sleep 20
 
       - name: Deploy cert-manager
         run: |
