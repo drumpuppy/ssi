@@ -6,12 +6,10 @@ replicas: 1
 #
 # Note that when overriding logstash.yml, `http.host: 0.0.0.0` should always be included
 # to make default probes work.
-logstashConfig: {}
-#  logstash.yml: |
-#    key:
-#      nestedkey: value
-#  log4j2.properties: |
-#    key = value
+logstashConfig:
+  logstash.yml: |
+    http.host: 0.0.0.0
+    path.config: /usr/share/logstash/pipeline
 
 # Allows you to add any pipeline files in /usr/share/logstash/pipeline/
 ### ***warn*** there is a hardcoded logstash.conf in the image, override it first
@@ -21,21 +19,72 @@ logstashPipeline:
       beats {
         port=>5044
       }
+      http_poller {
+        urls => { prometheus_metrics => "http://prometheus-server.default.svc.cluster.local/metrics" }
+        schedule => { every => "10s" }
+        codec => plain
+      }
+      http {
+        port => 5045
+        codec => json
+      }
     }
+
+    filter {
+      if [source] == "falco" {
+        json {
+          source => "message"
+          target => "falco_data"
+        }
+      }
+      else if [type] == "prometheus_metrics" {
+        grok {
+          match => { "message" => "%{PROMETHEUS_METRICS_PATTERN}" }
+        }
+      }
+    }
+
     output {
-      elasticsearch {
-        hosts => "https://elasticsearch-master:9200"
-        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-        user => '${ELASTICSEARCH_USERNAME}'
-        password => '${ELASTICSEARCH_PASSWORD}'
+      if [source] == "falco" {
+        elasticsearch {
+          hosts => "https://elasticsearch-master:9200"
+          ssl => true
+          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+          user => '${ELASTICSEARCH_USERNAME}'
+          password => '${ELASTICSEARCH_PASSWORD}'
+          index => "falco-alerts-%{+YYYY.MM.dd}"
+          ecs_compatibility => "v8"
+        }
+      }
+      else if [type] == "prometheus_metrics" {
+        elasticsearch {
+          hosts => "https://elasticsearch-master:9200"
+          ssl => true
+          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+          user => '${ELASTICSEARCH_USERNAME}'
+          password => '${ELASTICSEARCH_PASSWORD}'
+          index => "prometheus-metrics-%{+YYYY.MM.dd}"
+          ecs_compatibility => "v8"
+        }
+      }
+      else {
+        elasticsearch {
+          hosts => "https://elasticsearch-master:9200"
+          ssl => true
+          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+          user => '${ELASTICSEARCH_USERNAME}'
+          password => '${ELASTICSEARCH_PASSWORD}'
+          index => "other-logs-%{+YYYY.MM.dd}"
+          ecs_compatibility => "v8"
+        }
       }
     }
 
 # Allows you to add any pattern files in your custom pattern dir
 logstashPatternDir: "/usr/share/logstash/patterns/"
-logstashPattern: {}
-#    pattern.conf: |
-#      DPKG_VERSION [-+~<>\.0-9a-zA-Z]+
+logstashPattern:
+  prometheus-metrics-pattern.conf: |
+    PROMETHEUS_METRICS_PATTERN ^(?<metric_name>[a-zA-Z_:][a-zA-Z0-9_:]*)\s*(?<value>[0-9\.-]+)\s*(?<timestamp>[0-9]+)?$
 
 # Extra environment variables to append to this nodeGroup
 # This will be appended to the current 'env:' key. You can use any of the kubernetes env
@@ -80,7 +129,7 @@ secrets: []
 secretMounts:
   - name: "elasticsearch-master-certs"
     secretName: "elasticsearch-master-certs"
-    path: "/usr/share/logstash/config/elasticsearch-master-certs"
+    path: "/usr/share/logstash/config/elasticsearch-master-certs/"
 
 
 hostAliases: []
@@ -292,6 +341,14 @@ service:
        port: 8080
        protocol: TCP
        targetPort: 8080
+     - name: http-additional
+       port: 5045
+       protocol: TCP
+       targetPort: 5045
+     - name: management
+       port: 9600
+       protocol: TCP
+       targetPort: 9600
 
 ingress:
   enabled: false
