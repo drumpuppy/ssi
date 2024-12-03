@@ -961,7 +961,7 @@ falco:
   # -- Send logs to an HTTP endpoint or webhook.
   http_output:
     enabled: true
-    url: "http://elasticsearch-master.default.svc.cluster.local:9200/falco-alerts/_doc"
+    url: "http://logstash-logstash:5045"
     user_agent: "falcosecurity/falco"
     # -- Tell Falco to not verify the remote server.
     insecure: true
@@ -1131,7 +1131,7 @@ falco:
   # verbosity of Falco's operational logs. Only logs of a certain severity level
   # or higher will be emitted. Supported levels: "emergency", "alert", "critical",
   # "error", "warning", "notice", "info", "debug".
-  log_level: info
+  log_level: debug
 
   # [Stable] `libs_logger`
   #
