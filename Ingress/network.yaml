@@ -45,7 +45,7 @@ spec:
         - prometheus2.my-soc.fr
         - iris2.my-soc.fr
         - kibana2.my-soc.fr
-      secretName: ingress-tls-2
+      secretName: ingress-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
