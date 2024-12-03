@@ -148,7 +148,7 @@ jobs:
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-          sleep 20
+          sleep 40
 
       - name: Deploy ClusterIssuer
         run: |
