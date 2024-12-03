@@ -205,8 +205,6 @@ jobs:
       - name: Deploy Prometheus Operator
         run: |
           helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
-          sleep 15
-          helm uninstall prometheus-operator --namespace default
 
       - name: Deploy Falco
         run: |
