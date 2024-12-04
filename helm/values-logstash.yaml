@@ -17,16 +17,22 @@ logstashPipeline:
   logstash.conf: |
     input {
       beats {
-        port=>5044
+        port => 5044
+      }
+      http {
+        port => 5045
+        codec => json
+        add_field => { "source" => "falco" } # Falco logs
+      }
+      beats {
+        port => 5046
+        add_field => { "source" => "istio" } # Istio logs
       }
       http_poller {
         urls => { prometheus_metrics => "http://prometheus-server.default.svc.cluster.local/metrics" }
         schedule => { every => "10s" }
         codec => plain
-      }
-      http {
-        port => 5045
-        codec => json
+        add_field => { "type" => "prometheus_metrics" } # Prometheus metrics
       }
     }
 
@@ -36,10 +42,14 @@ logstashPipeline:
           source => "message"
           target => "falco_data"
         }
-      }
-      else if [type] == "prometheus_metrics" {
+      } else if [type] == "prometheus_metrics" {
         grok {
           match => { "message" => "%{PROMETHEUS_METRICS_PATTERN}" }
+        }
+      } else if [source] == "istio" {
+        json {
+          source => "message"
+          target => "istio_data"
         }
       }
     }
@@ -55,8 +65,7 @@ logstashPipeline:
           index => "falco-alerts-%{+YYYY.MM.dd}"
           ecs_compatibility => "v8"
         }
-      }
-      else if [type] == "prometheus_metrics" {
+      } else if [type] == "prometheus_metrics" {
         elasticsearch {
           hosts => "https://elasticsearch-master:9200"
           ssl => true
@@ -66,8 +75,17 @@ logstashPipeline:
           index => "prometheus-metrics-%{+YYYY.MM.dd}"
           ecs_compatibility => "v8"
         }
-      }
-      else {
+      } else if [source] == "istio" {
+        elasticsearch {
+          hosts => "https://elasticsearch-master:9200"
+          ssl => true
+          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+          user => '${ELASTICSEARCH_USERNAME}'
+          password => '${ELASTICSEARCH_PASSWORD}'
+          index => "istio-logs-%{+YYYY.MM.dd}"
+          ecs_compatibility => "v8"
+        }
+      } else {
         elasticsearch {
           hosts => "https://elasticsearch-master:9200"
           ssl => true
@@ -79,6 +97,8 @@ logstashPipeline:
         }
       }
     }
+
+
 
 # Allows you to add any pattern files in your custom pattern dir
 logstashPatternDir: "/usr/share/logstash/patterns/"
@@ -345,6 +365,10 @@ service:
        port: 5045
        protocol: TCP
        targetPort: 5045
+     - name: istio
+       port: 5046
+       protocol: TCP
+       targetPort: 5046
      - name: management
        port: 9600
        protocol: TCP

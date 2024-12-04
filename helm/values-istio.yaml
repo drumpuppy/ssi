@@ -68,6 +68,9 @@ _internal_defaults_do_not_set:
     prometheus.io/scrape: "true"
     prometheus.io/port: "15090"
     prometheus.io/path: "/stats/prometheus"
+    logstash.io/enabled: "true"
+    logstash.io/port: "5046"
+    logstash.io/protocol: "http"
 
   serviceAnnotations: {}
   serviceAccountAnnotations: {}
@@ -339,7 +342,7 @@ _internal_defaults_do_not_set:
 
       # Log level for proxy, applies to gateways and sidecars.
       # Expected values are: trace|debug|info|warning|error|critical|off
-      logLevel: warning
+      logLevel: info
 
       # Specify the path to the outlier event log.
       # Example: /dev/stdout
