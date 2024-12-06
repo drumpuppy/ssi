@@ -805,25 +805,6 @@ serverFiles:
         static_configs:
           - targets:
             - 'falco-metrics.default.svc.cluster.local:8765'
-      - job_name: 'falco'
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-            action: keep
-            regex: true
-          - source_labels: [__meta_kubernetes_namespace]
-            action: keep
-            regex: default
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-            action: replace
-            target_label: __metrics_path__
-            regex: (.+)
-          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_annotation_prometheus_io_port]
-            action: replace
-            target_label: __address__
-            regex: (.+);(.+)
-            replacement: ${1}:${2}
       - job_name: 'istio-proxy'
         kubernetes_sd_configs:
           - role: pod
