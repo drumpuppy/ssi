@@ -191,13 +191,13 @@ metrics:
   # 1h
   # 4h
   # 6h
-  interval: 1h
+  interval: 15m
   # -- outputRule enables seamless metrics and performance monitoring, we
   # recommend emitting metrics as the rule "Falco internal: metrics snapshot".
   # This option is particularly useful when Falco logs are preserved in a data
   # lake. Please note that to use this option, the Falco rules config `priority`
   # must be set to `info` at a minimum.
-  outputRule: false
+  outputRule: true
   # -- rulesCountersEnabled specifies whether the counts for each rule should be emitted.
   rulesCountersEnabled: true
   # -- resourceUtilizationEnabled`: Emit CPU and memory usage metrics. CPU usage

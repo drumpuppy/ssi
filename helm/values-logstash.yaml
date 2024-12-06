@@ -18,41 +18,58 @@ logstashPipeline:
     input {
       beats {
         port => 5044
-      }
-      http {
-        port => 5045
-        codec => json
-        add_field => { "source" => "falco" } # Falco logs
-      }
-      beats {
-        port => 5046
-        add_field => { "source" => "istio" } # Istio logs
+        add_field => { "source" => "falco" } # Explicitly set the source field for Falco
       }
       http_poller {
         urls => { prometheus_metrics => "http://prometheus-server.default.svc.cluster.local/metrics" }
         schedule => { every => "10s" }
         codec => plain
-        add_field => { "type" => "prometheus_metrics" } # Prometheus metrics
+        add_field => { "type" => "prometheus_metrics" } # Explicitly set the type field for Prometheus
+      }
+      http {
+        port => 5045
+        codec => json
+        add_field => { "source" => "http" } # HTTP events
+      }
+      beats {
+        port => 5046
+        add_field => { "source" => "istio" } # Explicitly set the source field for Istio logs
       }
     }
 
     filter {
       if [source] == "falco" {
-        json {
-          source => "message"
-          target => "falco_data"
+        if [message] =~ "^\s*\{.*\}\s*$" {
+          json {
+            source => "message"
+            target => "falco_data"
+            tag_on_failure => ["_jsonparsefailure"]
+          }
+        } else {
+          mutate {
+            add_tag => ["_invalid_json"]
+          }
         }
       } else if [type] == "prometheus_metrics" {
         grok {
           match => { "message" => "%{PROMETHEUS_METRICS_PATTERN}" }
         }
       } else if [source] == "istio" {
-        json {
-          source => "message"
-          target => "istio_data"
+        if [message] =~ "^\s*\{.*\}\s*$" {
+          json {
+            source => "message"
+            target => "istio_data"
+            tag_on_failure => ["_jsonparsefailure"]
+          }
+        } else {
+          mutate {
+            rename => { "message" => "raw_message" }
+            add_field => { "parse_status" => "non-json" }
+          }
         }
       }
     }
+
 
     output {
       if [source] == "falco" {
