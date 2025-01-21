@@ -58,7 +58,7 @@ resource "scaleway_vpc_private_network" "pvn" {
 # Kubernetes Cluster
 resource "scaleway_k8s_cluster" "cluster" {
   name        = "k8s-cluster"
-  version     = "1.30.2"
+  version     = "1.31.2"
   cni         = "cilium"
   region      = var.region
   description = "Scaleway Kubernetes Cluster"
