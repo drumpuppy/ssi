@@ -64,12 +64,16 @@ jobs:
           kubectl delete -f ./ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
 
-
-      - name: Deploy NGINX Ingress Controller
+      - name: Deploy NGINX Ingress Controller with Helm
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-          kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
-          sleep 10
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx --create-namespace \
+            -f ./helm/values-nginx.yaml
+
+          kubectl wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx
+
 
       - name: Deploy Ingress
         run: |
