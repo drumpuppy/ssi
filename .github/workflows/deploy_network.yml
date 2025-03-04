@@ -63,11 +63,6 @@ jobs:
           kubectl delete -f ./Ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
 
-      - name: Install Prometheus Operator CRDs
-        run: |
-          kubectl apply -f https://github.com/prometheus-operator/prometheus-operator/releases/latest/download/bundle.yaml
-          sleep 30  # Ensure CRDs are installed before proceeding
-
       # Étape 8 : Déploiement de NGINX Ingress Controller
       - name: Deploy NGINX Ingress Controller with Helm
         run: |
