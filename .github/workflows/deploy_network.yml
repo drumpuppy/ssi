@@ -35,7 +35,6 @@ jobs:
           SCW_DEFAULT_ZONE: fr-par-1
         run: |
           mkdir -p ~/.config/scw
-          touch ~/.config/scw/config.yaml
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
           scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
@@ -55,15 +54,31 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      # Étape 6 : Clean des Ressources
+      # Étape 6 : Activer les logs de flux réseau sur Scaleway
+      - name: Enable Scaleway Flow Logs
+        run: |
+          BUCKET_NAME="flow-logs-$(date +%s)"
+          scw object create-bucket "$BUCKET_NAME"
+          
+          GATEWAY_ID=$(scw vpc gateway list --output json | jq -r '.[0].id')
+          if [[ -z "$GATEWAY_ID" || "$GATEWAY_ID" == "null" ]]; then
+            echo "Error: No VPC Gateway found."
+            exit 1
+          fi
+          echo "Found VPC Gateway ID: $GATEWAY_ID"
+          
+          scw vpc gateway update "$GATEWAY_ID" enable-flow-logs=true flow-logs-bucket="$BUCKET_NAME"
+
+      # Étape 7 : Clean des Ressources
       - name: Delete network resources
         continue-on-error: true
         run: |
           kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml -n ingress-nginx
           kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
-          kubectl delete -f ./ingress/clusterIssuer.yaml -n default
+          kubectl delete -f ./Ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
 
+      # Étape 8 : Déploiement de NGINX Ingress Controller
       - name: Deploy NGINX Ingress Controller with Helm
         run: |
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -74,23 +89,16 @@ jobs:
 
           kubectl wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx
 
-
+      # Étape 9 : Déploiement de l'Ingress
       - name: Deploy Ingress
         run: |
           kubectl apply -f ./Ingress/network.yaml
 
-      # Étape 7 : Récupérer l'IP du Load Balancer
+      # Étape 10 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
         run: |
-          lb_data=$(scw lb ip list --output json)
-          echo "Debugging Load Balancer Data: $lb_data"
-          if [[ -z "$lb_data" || "$lb_data" == "null" ]]; then
-            echo "Error: No Load Balancer IPs found."
-            exit 1
-          fi
-          # Extraction de l'adresse IP à partir du champ 'ip_address'
-          lb_ip=$(echo "$lb_data" | jq -r '.[0].ip_address')
+          lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
           if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
             echo "Error: Load Balancer IP not found."
             exit 1
@@ -98,13 +106,12 @@ jobs:
           echo "Load Balancer IP: $lb_ip"
           echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
-
-      # Étape 8 : Installer ovh
+      # Étape 11 : Installer ovh
       - name: Install OVH Python SDK
         run: |
           pip install ovh
 
-      # Étape 9 : Gérer les domaines dans OVH
+      # Étape 12 : Gérer les domaines dans OVH
       - name: Update OVH DNS Records
         env:
           OVH_APPLICATION_KEY: ${{ secrets.OVH_APP_KEY }}
@@ -113,8 +120,6 @@ jobs:
           LB_IP: ${{ env.lb_ip }}
         run: |
           python <<EOF
-          
-          
           import ovh
           import os
           
@@ -149,16 +154,14 @@ jobs:
           EOF
           sleep 20
 
+      # Étape 13 : Déploiement de cert-manager
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
           kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=120s
           sleep 60
 
+      # Étape 14 : Déploiement de ClusterIssuer
       - name: Deploy ClusterIssuer
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
-
-      
-
-      
