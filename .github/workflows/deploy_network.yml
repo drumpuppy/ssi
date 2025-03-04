@@ -54,21 +54,6 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      # Étape 6 : Activer les logs de flux réseau sur Scaleway
-      - name: Enable Scaleway Flow Logs
-        run: |
-          BUCKET_NAME="flow-logs-$(date +%s)"
-          scw object create-bucket "$BUCKET_NAME"
-          
-          GATEWAY_ID=$(scw vpc gateway list --output json | jq -r '.[0].id')
-          if [[ -z "$GATEWAY_ID" || "$GATEWAY_ID" == "null" ]]; then
-            echo "Error: No VPC Gateway found."
-            exit 1
-          fi
-          echo "Found VPC Gateway ID: $GATEWAY_ID"
-          
-          scw vpc gateway update "$GATEWAY_ID" enable-flow-logs=true flow-logs-bucket="$BUCKET_NAME"
-
       # Étape 7 : Clean des Ressources
       - name: Delete network resources
         continue-on-error: true
@@ -165,3 +150,19 @@ jobs:
       - name: Deploy ClusterIssuer
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
+
+
+      # Étape 6 : Activer les logs de flux réseau sur Scaleway
+      - name: Enable Scaleway Flow Logs
+        run: |
+          BUCKET_NAME="flow-logs-$(date +%s)"
+          scw object create-bucket "$BUCKET_NAME"
+          
+          GATEWAY_ID=$(scw vpc gateway list --output json | jq -r '.[0].id')
+          if [[ -z "$GATEWAY_ID" || "$GATEWAY_ID" == "null" ]]; then
+            echo "Error: No VPC Gateway found."
+            exit 1
+          fi
+          echo "Found VPC Gateway ID: $GATEWAY_ID"
+          
+          scw vpc gateway update "$GATEWAY_ID" enable-flow-logs=true flow-logs-bucket="$BUCKET_NAME"
