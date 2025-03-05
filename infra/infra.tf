@@ -84,9 +84,9 @@ resource "scaleway_k8s_pool" "pool" {
   cluster_id        = scaleway_k8s_cluster.cluster.id
   name              = "k8s-pool"
   node_type         = "PLAY2-MICRO"
-  size              = 2
-  min_size          = 2
-  max_size          = 2
+  size              = 3
+  min_size          = 3
+  max_size          = 3
   autohealing       = true
   autoscaling       = false
   container_runtime = "containerd"
