@@ -35,6 +35,10 @@ logstashPipeline:
         port => 5046
         add_field => { "source" => "istio" } # Explicitly set the source field for Istio logs
       }
+      beats {
+        port => 5047
+        add_field => { "source" => "wazuh" } # Explicitly set the source field for Wazuh logs
+      }
     }
 
     filter {
@@ -67,9 +71,14 @@ logstashPipeline:
             add_field => { "parse_status" => "non-json" }
           }
         }
+      } else if [source] == "wazuh" {
+        json {
+          source => "message"
+          target => "wazuh_data"
+          tag_on_failure => ["_jsonparsefailure"]
+        }
       }
     }
-
 
     output {
       if [source] == "falco" {
@@ -102,6 +111,16 @@ logstashPipeline:
           index => "istio-logs-%{+YYYY.MM.dd}"
           ecs_compatibility => "v8"
         }
+      } else if [source] == "wazuh" {
+        elasticsearch {
+          hosts => "https://elasticsearch-master:9200"
+          ssl => true
+          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+          user => '${ELASTICSEARCH_USERNAME}'
+          password => '${ELASTICSEARCH_PASSWORD}'
+          index => "wazuh-alerts-%{+YYYY.MM.dd}"
+          ecs_compatibility => "v8"
+        }
       } else {
         elasticsearch {
           hosts => "https://elasticsearch-master:9200"
@@ -114,6 +133,7 @@ logstashPipeline:
         }
       }
     }
+
 
 
 
