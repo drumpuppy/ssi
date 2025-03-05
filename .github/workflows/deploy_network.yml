@@ -44,8 +44,10 @@ jobs:
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
           # Vérification de la configuration
-          scw config get
-      
+          scw config get default-region
+          scw config get default-zone
+          scw config get access-key
+
           # Exporter explicitement la région et la zone pour être certain qu'elles sont prises en compte
           echo "SCW_DEFAULT_REGION=${SCW_DEFAULT_REGION}" >> $GITHUB_ENV
           echo "SCW_DEFAULT_ZONE=${SCW_DEFAULT_ZONE}" >> $GITHUB_ENV
