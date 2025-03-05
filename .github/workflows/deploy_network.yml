@@ -45,7 +45,10 @@ jobs:
 
           # Vérification de la configuration
           scw config get
-
+      
+          # Exporter explicitement la région et la zone pour être certain qu'elles sont prises en compte
+          echo "SCW_DEFAULT_REGION=${SCW_DEFAULT_REGION}" >> $GITHUB_ENV
+          echo "SCW_DEFAULT_ZONE=${SCW_DEFAULT_ZONE}" >> $GITHUB_ENV
 
       - name: Create Flow Logs Bucket
         run: |
