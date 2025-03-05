@@ -48,11 +48,18 @@ jobs:
           BUCKET_NAME="flow-logs-$(date +%s)"
           echo "Creating bucket: $BUCKET_NAME"
           
-          # Créer un bucket Object Storage avec les bons paramètres
-          scw object bucket create "$BUCKET_NAME" region="${SCW_DEFAULT_REGION}" enable-versioning=false acl=private
+          # Vérifier si la région est bien définie
+          if [ -z "${SCW_DEFAULT_REGION}" ]; then
+            echo "Error: SCW_DEFAULT_REGION is not set or is empty"
+            exit 1
+          fi
+          
+          # Créer un bucket Object Storage avec la bonne région
+          scw object bucket create "$BUCKET_NAME" region="$SCW_DEFAULT_REGION" enable-versioning=false acl=private
           
           # Stocker le nom du bucket dans une variable d'environnement pour les étapes suivantes
           echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
+
 
 
       # Étape 5 : Configurer kubeconfig
