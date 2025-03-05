@@ -43,6 +43,10 @@ jobs:
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
+          # Vérification de la configuration
+          scw config get
+
+
       - name: Create Flow Logs Bucket
         run: |
           BUCKET_NAME="flow-logs-$(date +%s)"
