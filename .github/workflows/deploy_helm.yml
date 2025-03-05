@@ -229,13 +229,13 @@ jobs:
       #     cd iris-web/deploy/kubernetes/
       #     helm install iris charts/ --values ../../../helm/values-iris.yaml -n default
 
-      # - name: Deploy Istio
-      #   run: |
-      #     helm repo add istio https://istio-release.storage.googleapis.com/charts
-      #     helm repo update
-      #     kubectl create namespace istio-system || true
-      #     helm install istiod istio/istiod --namespace istio-system -f ./helm/values-istio.yaml
-      #     kubectl delete ingress iris-ingress -n default
+      - name: Deploy Istio
+        run: |
+          helm repo add istio https://istio-release.storage.googleapis.com/charts
+          helm repo update
+          kubectl create namespace istio-system || true
+          helm install istiod istio/istiod --namespace istio-system -f ./helm/values-istio.yaml
+          kubectl delete ingress iris-ingress -n default
 
       # - name: Deploy Cortex
       #   run: |
