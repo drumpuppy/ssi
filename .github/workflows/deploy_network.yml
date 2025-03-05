@@ -42,6 +42,18 @@ jobs:
           scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
+
+      - name: Create Flow Logs Bucket
+        run: |
+          BUCKET_NAME="flow-logs-$(date +%s)"
+          echo "Creating bucket: $BUCKET_NAME"
+          
+          # Créer un bucket Object Storage
+          scw object bucket create name="$BUCKET_NAME" region="${SCW_DEFAULT_REGION}"
+          
+          # Stocker le nom du bucket dans une variable d'environnement pour les étapes suivantes
+          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
+
       # Étape 5 : Configurer kubeconfig
       - name: Configure kubeconfig
         run: |
