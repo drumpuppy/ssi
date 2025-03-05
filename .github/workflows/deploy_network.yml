@@ -91,6 +91,7 @@ jobs:
           kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml -n cert-manager
           kubectl delete -f ./Ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
+          kubectl delete ns ingress-nginx --force --grace-period=0
 
       # Étape 8 : Déploiement de NGINX Ingress Controller
       - name: Deploy NGINX Ingress Controller with Helm
