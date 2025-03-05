@@ -202,9 +202,9 @@ jobs:
             --namespace default \
             --values ./helm/values-prometheus.yaml
 
-      - name: Deploy Prometheus Operator
-        run: |
-          helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
+      # - name: Deploy Prometheus Operator
+      #   run: |
+      #     helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
 
       - name: Deploy Falco
         run: |
@@ -212,35 +212,31 @@ jobs:
           helm repo update
           helm install falco falcosecurity/falco --namespace default -f ./helm/values-falco.yaml
 
-      - name: Deploy IRIS
-        run: |
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-          helm repo update
-          helm install ingress-nginx ingress-nginx/ingress-nginx \
-            --namespace default \
-            --values ./helm/values-nginx.yaml
+      # - name: Deploy IRIS
+      #   run: |
+      #     helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      #     helm repo update
+      #     helm install ingress-nginx ingress-nginx/ingress-nginx \
+      #       --namespace default \
+      #       --values ./helm/values-nginx.yaml
           
-          echo "Waiting for Ingress NGINX to be ready..."
-          kubectl rollout status deployment ingress-nginx-controller -n default
+      #     echo "Waiting for Ingress NGINX to be ready..."
+      #     kubectl rollout status deployment ingress-nginx-controller -n default
           
-          git clone https://github.com/dfir-iris/iris-web.git
-          cd iris-web/deploy/kubernetes/
-          helm install iris charts/ --values ../../../helm/values-iris.yaml -n default
+      #     git clone https://github.com/dfir-iris/iris-web.git
+      #     cd iris-web/deploy/kubernetes/
+      #     helm install iris charts/ --values ../../../helm/values-iris.yaml -n default
 
-      - name: Deploy Istio
-        run: |
-          helm repo add istio https://istio-release.storage.googleapis.com/charts
-          helm repo update
-          kubectl create namespace istio-system || true
-          helm install istiod istio/istiod --namespace istio-system -f ./helm/values-istio.yaml
-          kubectl delete ingress iris-ingress -n default
+      # - name: Deploy Istio
+      #   run: |
+      #     helm repo add istio https://istio-release.storage.googleapis.com/charts
+      #     helm repo update
+      #     kubectl create namespace istio-system || true
+      #     helm install istiod istio/istiod --namespace istio-system -f ./helm/values-istio.yaml
+      #     kubectl delete ingress iris-ingress -n default
 
-      - name: Deploy Cortex
-        run: |
-          helm repo add cortex-helm https://cortexproject.github.io/cortex-helm-chart
-          helm repo update
-          helm install cortex --namespace default cortex-helm/cortex -f ./helm/values-cortex.yaml
-
-
-
-
+      # - name: Deploy Cortex
+      #   run: |
+      #     helm repo add cortex-helm https://cortexproject.github.io/cortex-helm-chart
+      #     helm repo update
+      #     helm install cortex --namespace default cortex-helm/cortex -f ./helm/values-cortex.yaml
