@@ -59,13 +59,13 @@ jobs:
           else
             echo "Prometheus not installed in the default namespace."
           fi
-      
+
           if helm list -n default | grep -q 'prometheus-operator'; then
             helm uninstall prometheus-operator --namespace default
           else
             echo "Prometheus Operator not installed in the default namespace."
           fi
-      
+
           if helm list -n default | grep -q 'logstash'; then
             helm uninstall logstash --namespace default
           else
@@ -77,32 +77,32 @@ jobs:
           else
             echo "Falco not installed in the default namespace."
           fi
-      
+
           if helm list -n default | grep -q 'filebeat'; then
             helm uninstall filebeat --namespace default
           else
             echo "Filebeat not installed in the default namespace."
           fi
-      
+
           if helm list -n default | grep -q 'elasticsearch'; then
             helm uninstall elasticsearch --namespace default
           else
             echo "Elasticsearch not installed in the default namespace."
           fi
-            
+
           if helm list -n istio-system | grep -q 'istiod'; then
             helm uninstall istiod --namespace istio-system
           else
             echo "Istiod not installed in the istio-system namespace."
           fi
 
-      
+
           if helm list -n default | grep -q 'ingress-nginx'; then
             helm uninstall ingress-nginx --namespace default
           else
             echo "Ingress-nginx not installed in the default namespace."
           fi
-          
+
           if helm list -n default | grep -q 'iris'; then
             helm uninstall iris --namespace default
           else
@@ -122,7 +122,7 @@ jobs:
             echo "Cortex not installed in the default namespace."
           fi
 
-      
+
       - name: Clean Up Kibana Resources
         continue-on-error: true
         run: |
@@ -134,12 +134,12 @@ jobs:
           kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
-      
+
       - name: List and Delete All PVCs
         run: |
           # Get all PVC names in the default namespace
           pvc_names=$(kubectl get pvc -o jsonpath='{.items[*].metadata.name}')
-          
+
           if [ -z "$pvc_names" ]; then
             echo "No PVCs found."
           else
@@ -194,17 +194,17 @@ jobs:
             --namespace default \
             --values ./helm/values-filebeat.yaml
 
-      - name: Deploy Prometheus
-        run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-          helm install prometheus prometheus-community/prometheus \
-            --namespace default \
-            --values ./helm/values-prometheus.yaml
-
-      # - name: Deploy Prometheus Operator
+      # - name: Deploy Prometheus
       #   run: |
-      #     helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
+      #     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      #     helm repo update
+      #     helm install prometheus prometheus-community/prometheus \
+      #       --namespace default \
+      #       --values ./helm/values-prometheus.yaml
+
+      - name: Deploy Prometheus Operator
+        run: |
+          helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
 
       - name: Deploy Falco
         run: |
@@ -219,10 +219,10 @@ jobs:
       #     helm install ingress-nginx ingress-nginx/ingress-nginx \
       #       --namespace default \
       #       --values ./helm/values-nginx.yaml
-          
+
       #     echo "Waiting for Ingress NGINX to be ready..."
       #     kubectl rollout status deployment ingress-nginx-controller -n default
-          
+
       #     git clone https://github.com/dfir-iris/iris-web.git
       #     cd iris-web/deploy/kubernetes/
       #     helm install iris charts/ --values ../../../helm/values-iris.yaml -n default
