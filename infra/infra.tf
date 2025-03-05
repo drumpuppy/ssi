@@ -92,6 +92,8 @@ resource "scaleway_k8s_pool" "pool" {
   container_runtime = "containerd"
   zone              = var.zone
 
+  root_volume_size_in_gb = 75
+
   upgrade_policy {
     max_surge       = 1
     max_unavailable = 1
