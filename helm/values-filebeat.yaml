@@ -36,6 +36,7 @@ daemonset:
   filebeatConfig:
     filebeat.yml: |
       filebeat.inputs:
+        # Logs des containers Kubernetes
         - type: container
           paths:
             - /var/log/containers/*.log
@@ -45,19 +46,52 @@ daemonset:
                 matchers:
                   - logs_path:
                       logs_path: "/var/log/containers/"
+          fields:
+            source: kubernetes
+          fields_under_root: true
+
+        # Logs système (syslog, auth.log, messages)
+        - type: log
+          paths:
+            - /var/log/syslog
+            - /var/log/messages
+            - /var/log/auth.log
+          fields:
+            source: system
+          fields_under_root: true
+
+        # Logs Falco
         - type: log
           paths:
             - /var/log/falco/falco.log
+          fields:
+            source: falco
+          fields_under_root: true
+          processors:
+            - decode_json_fields:
+                fields: ["message"]
+                target: "falco_data"
+                overwrite_keys: true
+
+        # Logs Wazuh
         - type: log
           paths:
-            - /var/ossec/logs/alerts/alerts.json  # Wazuh Alerts JSON
-          json.keys_under_root: true
-          json.overwrite_keys: true
+            - /var/ossec/logs/alerts/alerts.json
           fields:
             source: wazuh
           fields_under_root: true
+          processors:
+            - decode_json_fields:
+                fields: ["message"]
+                target: "wazuh_data"
+                overwrite_keys: true
+
       output.logstash:
-        hosts: ["logstash-logstash:5044"]
+        hosts: ["logstash-logstash:5044"]  # ✅ Logstash écoute tout sur 5044
+        loadbalance: true
+
+
+
 
   # Only used when updateStrategy is set to "RollingUpdate"
   maxUnavailable: 1
