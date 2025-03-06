@@ -10,68 +10,42 @@ logstashConfig:
   logstash.yml: |
     http.host: 0.0.0.0
     path.config: /usr/share/logstash/pipeline
+    pipeline.ecs_compatibility: v8
+    pipeline.workers: 2
 
 # Allows you to add any pipeline files in /usr/share/logstash/pipeline/
 ### ***warn*** there is a hardcoded logstash.conf in the image, override it first
 logstashPipeline:
-  logstash.conf: |
+  falco.conf: |
     input {
       beats {
         port => 5044
-        add_field => { "source" => "falco" } # Explicitly set the source field for Falco
-      }
-      http_poller {
-        urls => { prometheus_metrics => "http://prometheus-server.default.svc.cluster.local/metrics" }
-        schedule => { every => "10s" }
-        codec => plain
-        add_field => { "type" => "prometheus_metrics" } # Explicitly set the type field for Prometheus
-      }
-      http {
-        port => 5045
-        codec => json
-        add_field => { "source" => "http" } # HTTP events
-      }
-      beats {
-        port => 5046
-        add_field => { "source" => "istio" } # Explicitly set the source field for Istio logs
-      }
-      beats {
-        port => 5047
-        add_field => { "source" => "wazuh" } # Explicitly set the source field for Wazuh logs
       }
     }
 
     filter {
       if [source] == "falco" {
-        if [message] =~ "^\s*\{.*\}\s*$" {
-          json {
-            source => "message"
-            target => "falco_data"
-            tag_on_failure => ["_jsonparsefailure"]
-          }
-        } else {
-          mutate {
-            add_tag => ["_invalid_json"]
-          }
+        json {
+          source => "message"
+          target => "falco_data"
+          tag_on_failure => ["_jsonparsefailure"]
         }
-      } else if [type] == "prometheus_metrics" {
-        grok {
-          match => { "message" => "%{PROMETHEUS_METRICS_PATTERN}" }
-        }
-      } else if [source] == "istio" {
-        if [message] =~ "^\s*\{.*\}\s*$" {
-          json {
-            source => "message"
-            target => "istio_data"
-            tag_on_failure => ["_jsonparsefailure"]
-          }
-        } else {
-          mutate {
-            rename => { "message" => "raw_message" }
-            add_field => { "parse_status" => "non-json" }
-          }
-        }
-      } else if [source] == "wazuh" {
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => "https://elasticsearch-master:9200"
+        index => "falco-alerts-%{+YYYY.MM.dd}"
+      }
+    }
+
+
+
+
+  wazuh.conf: |
+    filter {
+      if [source] == "wazuh" {
         json {
           source => "message"
           target => "wazuh_data"
@@ -81,56 +55,46 @@ logstashPipeline:
     }
 
     output {
-      if [source] == "falco" {
-        elasticsearch {
-          hosts => "https://elasticsearch-master:9200"
-          ssl => true
-          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-          user => '${ELASTICSEARCH_USERNAME}'
-          password => '${ELASTICSEARCH_PASSWORD}'
-          index => "falco-alerts-%{+YYYY.MM.dd}"
-          ecs_compatibility => "v8"
+      elasticsearch {
+        hosts => "https://elasticsearch-master:9200"
+        index => "wazuh-alerts-%{+YYYY.MM.dd}"
+      }
+    }
+
+
+
+  istio.conf: |
+    filter {
+      if [source] == "istio" {
+        json {
+          source => "message"
+          target => "istio_data"
+          tag_on_failure => ["_jsonparsefailure"]
         }
-      } else if [type] == "prometheus_metrics" {
-        elasticsearch {
-          hosts => "https://elasticsearch-master:9200"
-          ssl => true
-          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-          user => '${ELASTICSEARCH_USERNAME}'
-          password => '${ELASTICSEARCH_PASSWORD}'
-          index => "prometheus-metrics-%{+YYYY.MM.dd}"
-          ecs_compatibility => "v8"
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => "https://elasticsearch-master:9200"
+        index => "istio-logs-%{+YYYY.MM.dd}"
+      }
+    }
+
+    
+  generic-logs.conf: |
+    filter {
+      if ![source] {
+        mutate {
+          add_field => { "source" => "generic" }
         }
-      } else if [source] == "istio" {
-        elasticsearch {
-          hosts => "https://elasticsearch-master:9200"
-          ssl => true
-          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-          user => '${ELASTICSEARCH_USERNAME}'
-          password => '${ELASTICSEARCH_PASSWORD}'
-          index => "istio-logs-%{+YYYY.MM.dd}"
-          ecs_compatibility => "v8"
-        }
-      } else if [source] == "wazuh" {
-        elasticsearch {
-          hosts => "https://elasticsearch-master:9200"
-          ssl => true
-          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-          user => '${ELASTICSEARCH_USERNAME}'
-          password => '${ELASTICSEARCH_PASSWORD}'
-          index => "wazuh-alerts-%{+YYYY.MM.dd}"
-          ecs_compatibility => "v8"
-        }
-      } else {
-        elasticsearch {
-          hosts => "https://elasticsearch-master:9200"
-          ssl => true
-          cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-          user => '${ELASTICSEARCH_USERNAME}'
-          password => '${ELASTICSEARCH_PASSWORD}'
-          index => "other-logs-%{+YYYY.MM.dd}"
-          ecs_compatibility => "v8"
-        }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => "https://elasticsearch-master:9200"
+        index => "generic-logs-%{+YYYY.MM.dd}"
       }
     }
 
