@@ -96,7 +96,6 @@ jobs:
             echo "Istiod not installed in the istio-system namespace."
           fi
 
-
           if helm list -n default | grep -q 'ingress-nginx'; then
             helm uninstall ingress-nginx --namespace default
           else
@@ -135,20 +134,9 @@ jobs:
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
 
-      - name: List and Delete All PVCs
+      - name: Force Delete Elasticsearch PVCs
         run: |
-          # Get all PVC names in the default namespace
-          pvc_names=$(kubectl get pvc -o jsonpath='{.items[*].metadata.name}')
-
-          if [ -z "$pvc_names" ]; then
-            echo "No PVCs found."
-          else
-            for pvc_name in $pvc_names; do
-              echo "Deleting PVC $pvc_name..."
-              kubectl delete pvc "$pvc_name" || echo "Failed to delete PVC $pvc_name. It may be in use."
-            done
-          fi
-
+          kubectl delete pvc -n default --selector=app=elasticsearch-master || true
 
       - name: Deploy Elasticsearch
         run: |
