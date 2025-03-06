@@ -37,6 +37,11 @@ logstashPipeline:
       elasticsearch {
         hosts => "https://elasticsearch-master:9200"
         index => "falco-alerts-%{+YYYY.MM.dd}"
+        ssl => true
+        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+        user => '${ELASTICSEARCH_USERNAME}'
+        password => '${ELASTICSEARCH_PASSWORD}'
+        ecs_compatibility => "v8"
       }
     }
 
@@ -58,6 +63,11 @@ logstashPipeline:
       elasticsearch {
         hosts => "https://elasticsearch-master:9200"
         index => "wazuh-alerts-%{+YYYY.MM.dd}"
+        ssl => true
+        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+        user => '${ELASTICSEARCH_USERNAME}'
+        password => '${ELASTICSEARCH_PASSWORD}'
+        ecs_compatibility => "v8"
       }
     }
 
@@ -78,6 +88,11 @@ logstashPipeline:
       elasticsearch {
         hosts => "https://elasticsearch-master:9200"
         index => "istio-logs-%{+YYYY.MM.dd}"
+        ssl => true
+        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+        user => '${ELASTICSEARCH_USERNAME}'
+        password => '${ELASTICSEARCH_PASSWORD}'
+        ecs_compatibility => "v8"
       }
     }
 
@@ -95,6 +110,11 @@ logstashPipeline:
       elasticsearch {
         hosts => "https://elasticsearch-master:9200"
         index => "generic-logs-%{+YYYY.MM.dd}"
+        ssl => true
+        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+        user => '${ELASTICSEARCH_USERNAME}'
+        password => '${ELASTICSEARCH_PASSWORD}'
+        ecs_compatibility => "v8"
       }
     }
 
