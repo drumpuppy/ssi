@@ -218,8 +218,8 @@ jobs:
           helm repo add istio https://istio-release.storage.googleapis.com/charts
           helm repo update
           kubectl create namespace istio-system || true
-          helm install istiod istio/istiod --namespace istio-system -f ./helm/values-istio.yaml
-          kubectl delete ingress iris-ingress -n default
+          helm upgrade --install istio-base istio/base -n istio-system --create-namespace
+          helm upgrade --install istiod istio/istiod -f values-istio.yaml -n istio-system
 
       # - name: Deploy Cortex
       #   run: |
