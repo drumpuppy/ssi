@@ -102,8 +102,8 @@ jobs:
             echo "Falco not installed in the default namespace."
           fi
       
-          if helm list -n default | grep -q 'ingress-nginx'; then
-            helm uninstall ingress-nginx --namespace default
+          if helm list -n ingress-nginx | grep -q 'ingress-nginx'; then
+            helm uninstall ingress-nginx --namespace ingress-nginx
           else
             echo "Ingress-nginx not installed in the default namespace."
           fi
