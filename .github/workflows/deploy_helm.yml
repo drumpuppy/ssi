@@ -219,7 +219,7 @@ jobs:
           helm repo update
           kubectl create namespace istio-system || true
           helm upgrade --install istio-base istio/base -n istio-system --create-namespace
-          helm upgrade --install istiod istio/istiod -f values-istio.yaml -n istio-system
+          helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
 
       # - name: Deploy Cortex
       #   run: |
