@@ -24,12 +24,15 @@ logstashPipeline:
     }
 
     filter {
+      json {
+        source => "message"
+        target => "falco_data"
+        tag_on_failure => ["_jsonparsefailure"]
+      }
       if [source] == "falco" {
-        json {
-          source => "message"
-          target => "falco_data"
-          tag_on_failure => ["_jsonparsefailure"]
-        }
+        mutate { add_field => { "index_type" => "falco-alerts" } }
+      } else {
+        drop {}
       }
     }
 
@@ -45,17 +48,17 @@ logstashPipeline:
       }
     }
 
-
-
-
   wazuh.conf: |
     filter {
+      json {
+        source => "message"
+        target => "wazuh_data"
+        tag_on_failure => ["_jsonparsefailure"]
+      }
       if [source] == "wazuh" {
-        json {
-          source => "message"
-          target => "wazuh_data"
-          tag_on_failure => ["_jsonparsefailure"]
-        }
+        mutate { add_field => { "index_type" => "wazuh-alerts" } }
+      } else {
+        drop {}
       }
     }
 
@@ -71,16 +74,17 @@ logstashPipeline:
       }
     }
 
-
-
   istio.conf: |
     filter {
+      json {
+        source => "message"
+        target => "istio_data"
+        tag_on_failure => ["_jsonparsefailure"]
+      }
       if [source] == "istio" {
-        json {
-          source => "message"
-          target => "istio_data"
-          tag_on_failure => ["_jsonparsefailure"]
-        }
+        mutate { add_field => { "index_type" => "istio-logs" } }
+      } else {
+        drop {}
       }
     }
 
@@ -100,9 +104,7 @@ logstashPipeline:
   generic-logs.conf: |
     filter {
       if ![source] {
-        mutate {
-          add_field => { "source" => "generic" }
-        }
+        mutate { add_field => { "source" => "generic" } }
       }
     }
 
@@ -117,7 +119,6 @@ logstashPipeline:
         ecs_compatibility => "v8"
       }
     }
-
 
 
 
