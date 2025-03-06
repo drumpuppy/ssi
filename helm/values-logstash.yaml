@@ -24,15 +24,19 @@ logstashPipeline:
     }
 
     filter {
-      json {
-        source => "message"
-        target => "falco_data"
-        tag_on_failure => ["_jsonparsefailure"]
-      }
-      if [source] == "falco" {
-        mutate { add_field => { "index_type" => "falco-alerts" } }
+      if [message] {
+        json {
+          source => "message"
+          target => "falco_data"
+          tag_on_failure => ["_jsonparsefailure"]
+        }
+        if [source] == "falco" {
+          mutate { add_field => { "index_type" => "falco-alerts" } }
+        } else {
+          mutate { add_field => { "index_type" => "generic-logs" } }
+        }
       } else {
-        drop {}
+        mutate { add_field => { "json_error" => "missing message field" } }
       }
     }
 
@@ -50,15 +54,19 @@ logstashPipeline:
 
   wazuh.conf: |
     filter {
-      json {
-        source => "message"
-        target => "wazuh_data"
-        tag_on_failure => ["_jsonparsefailure"]
-      }
-      if [source] == "wazuh" {
-        mutate { add_field => { "index_type" => "wazuh-alerts" } }
+      if [message] {
+        json {
+          source => "message"
+          target => "wazuh_data"
+          tag_on_failure => ["_jsonparsefailure"]
+        }
+        if [source] == "wazuh" {
+          mutate { add_field => { "index_type" => "wazuh-alerts" } }
+        } else {
+          mutate { add_field => { "index_type" => "generic-logs" } }
+        }
       } else {
-        drop {}
+        mutate { add_field => { "json_error" => "missing message field" } }
       }
     }
 
@@ -76,15 +84,19 @@ logstashPipeline:
 
   istio.conf: |
     filter {
-      json {
-        source => "message"
-        target => "istio_data"
-        tag_on_failure => ["_jsonparsefailure"]
-      }
-      if [source] == "istio" {
-        mutate { add_field => { "index_type" => "istio-logs" } }
+      if [message] {
+        json {
+          source => "message"
+          target => "istio_data"
+          tag_on_failure => ["_jsonparsefailure"]
+        }
+        if [source] == "istio" {
+          mutate { add_field => { "index_type" => "istio-logs" } }
+        } else {
+          mutate { add_field => { "index_type" => "generic-logs" } }
+        }
       } else {
-        drop {}
+        mutate { add_field => { "json_error" => "missing message field" } }
       }
     }
 
