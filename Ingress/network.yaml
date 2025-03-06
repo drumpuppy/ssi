@@ -10,26 +10,26 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: prometheus2.my-soc.fr
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: prometheus-server
-                port:
-                  number: 80
-    - host: iris2.my-soc.fr
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: iriswebapp-app
-                port:
-                  number: 8000
+    # - host: prometheus2.my-soc.fr
+    #   http:
+    #     paths:
+    #       - path: /
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: prometheus-server
+    #             port:
+    #               number: 80
+    # - host: iris2.my-soc.fr
+    #   http:
+    #     paths:
+    #       - path: /
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: iriswebapp-app
+    #             port:
+    #               number: 8000
     - host: kibana2.my-soc.fr
       http:
         paths:
@@ -42,8 +42,8 @@ spec:
                   number: 5601
   tls:
     - hosts:
-        - prometheus2.my-soc.fr
-        - iris2.my-soc.fr
+        # - prometheus2.my-soc.fr
+        # - iris2.my-soc.fr
         - kibana2.my-soc.fr
       secretName: ingress-tls
 ---
