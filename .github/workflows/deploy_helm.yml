@@ -114,6 +114,8 @@ jobs:
           else
             echo "Kibana not installed in the default namespace."
           fi
+          
+          kubectl delete -k ./helm/wazuh-kubernetes/wazuh/
 
           # if helm list -n default | grep -q 'cortex'; then
           #   helm uninstall cortex --namespace default
@@ -220,6 +222,11 @@ jobs:
           kubectl create namespace istio-system || true
           helm upgrade --install istio-base istio/base -n istio-system --create-namespace
           helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
+
+      - name: Deploy Wazuh
+        run: |
+          kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
+
 
       # - name: Deploy Cortex
       #   run: |
