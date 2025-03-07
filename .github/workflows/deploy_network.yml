@@ -109,6 +109,18 @@ jobs:
         run: |
           kubectl apply -f ./Ingress/network.yaml
 
+      # Étape 10.5 : Déploiement de Wazuh avec Kustomize
+      - name: Deploy Wazuh with Kustomize
+        run: |
+          kubectl apply -k wazuh-kubernetes/
+
+      # Étape 10.6 : Vérification du déploiement de Wazuh
+      - name: Check Wazuh Deployment
+        run: |
+          echo "Waiting for Wazuh pods to be ready..."
+          kubectl wait --for=condition=ready pod -l app=wazuh-dashboard -n wazuh --timeout=300s
+          kubectl get pods -n wazuh
+
       # Étape 10 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
