@@ -54,11 +54,6 @@ jobs:
         continue-on-error: true
         run: |
           echo "Uninstalling Helm charts..."
-          # if helm list -n default | grep -q 'prometheus'; then
-          #   helm uninstall prometheus --namespace default
-          # else
-          #   echo "Prometheus not installed in the default namespace."
-          # fi
       
           if helm list -n default | grep -q 'prometheus-operator'; then
             helm uninstall prometheus-operator --namespace default
@@ -107,11 +102,6 @@ jobs:
           else
             echo "Ingress-nginx not installed in the default namespace."
           fi
-          # if helm list -n default | grep -q 'iris'; then
-          #   helm uninstall iris --namespace default
-          # else
-          #   echo "Iris not installed in the default namespace."
-          # fi
       
           if helm list -n default | grep -q 'kibana'; then
             echo "Uninstalling Kibana in the background..."
@@ -120,11 +110,7 @@ jobs:
             echo "Kibana not installed in the default namespace."
           fi
 
-          # if helm list -n default | grep -q 'cortex'; then
-          #   helm uninstall cortex --namespace default
-          # else
-          #   echo "Cortex not installed in the default namespace."
-          # fi
+          kubectl delete -k ./helm/wazuh-kubernetes/wazuh/
       
       - name: Clean Up Kibana Resources
         continue-on-error: true
