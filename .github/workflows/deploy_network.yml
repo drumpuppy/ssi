@@ -112,7 +112,7 @@ jobs:
       # Étape 10.5 : Déploiement de Wazuh avec Kustomize
       - name: Deploy Wazuh with Kustomize
         run: |
-          kubectl apply -k ./helm/wazuh-kubernetes/
+          kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
 
       # Étape 10.6 : Vérification du déploiement de Wazuh
       - name: Check Wazuh Deployment
