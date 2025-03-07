@@ -40,11 +40,23 @@ spec:
                 name: kibana-kibana
                 port:
                   number: 5601
+        
+    - host: wazuh2.my-soc.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wazuh-dashboard
+                port:
+                  number: 443
   tls:
     - hosts:
         # - prometheus2.my-soc.fr
         # - iris2.my-soc.fr
         - kibana2.my-soc.fr
+        - wazuh2.my-soc.fr
       secretName: ingress-tls
 ---
 apiVersion: networking.k8s.io/v1
