@@ -19,7 +19,7 @@ spec:
               service:
                 name: dashboard
                 port:
-                  number: 443
+                  number: 1513
   tls:
     - hosts:
         - wazuh2.my-soc.fr
