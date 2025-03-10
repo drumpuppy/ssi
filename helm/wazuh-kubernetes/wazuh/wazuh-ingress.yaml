@@ -7,6 +7,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
   ingressClassName: nginx
   rules:
@@ -19,7 +20,7 @@ spec:
               service:
                 name: dashboard
                 port:
-                  number: 1513
+                  number: 5601
   tls:
     - hosts:
         - wazuh2.my-soc.fr
