@@ -26,5 +26,5 @@ spec:
     app: wazuh-dashboard
   ports:
     - name: dashboard
-      port: 443
+      port: 1513
       targetPort: 5601
