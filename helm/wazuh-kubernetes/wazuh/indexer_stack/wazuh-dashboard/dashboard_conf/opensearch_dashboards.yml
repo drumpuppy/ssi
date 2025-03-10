@@ -13,3 +13,4 @@ opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-c
 uiSettings.overrides.defaultRoute: /app/wz-home
 opensearch.username: "kibanaserver"       
 opensearch.password: "kibanaserver"
+opensearch.ssl.verificationMode: "none"
