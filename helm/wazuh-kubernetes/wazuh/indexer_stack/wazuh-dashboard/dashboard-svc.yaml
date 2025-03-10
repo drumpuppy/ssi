@@ -18,7 +18,7 @@ metadata:
   annotations:
     # domainName: 'changeme'
     # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: 'changeme'
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: '1513'
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: '5601'
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: https
 spec:
   type: ClusterIP
@@ -26,5 +26,5 @@ spec:
     app: wazuh-dashboard
   ports:
     - name: dashboard
-      port: 1513
+      port: 5601
       targetPort: 5601
