@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-snapshot-job
+  namespace: default
+spec:
+  schedule: "0 * * * *"  # Exécuter toutes les heures
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: snapshotter
+            image: alpine:latest
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                apk add --no-cache curl jq && \
+                echo "Starting PVC snapshot job..." && \
+                for pvc in elasticsearch-pvc doctobobo-db-pvc; do
+                  volume_id=$(kubectl get pvc $pvc -o jsonpath='{.spec.volumeName}')
+                  if [ -n "$volume_id" ]; then
+                    echo "Creating snapshot for $pvc..."
+                    snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+                    curl -X POST -H "X-Auth-Token: $SCW_SECRET_KEY" \
+                      -d "{\"name\": \"$snapshot_name\", \"volume_id\": \"$volume_id\"}" \
+                      "https://api.scaleway.com/instance/v1/regions/fr-par/snapshots"
+                  else
+                    echo "PVC $pvc not found!"
+                  fi
+                done
+            env:
+            - name: SCW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: scaleway-secrets
+                  key: SCW_SECRET_KEY
+          restartPolicy: OnFailure
