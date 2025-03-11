@@ -216,6 +216,7 @@ jobs:
           kubectl create namespace istio-system || true
           helm upgrade --install istio-base istio/base -n istio-system --create-namespace
           helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
+          helm upgrade --install istio-ingress istio/gateway -n istio-system
 
       - name: Deploy Wazuh
         run: |
