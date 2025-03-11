@@ -103,13 +103,17 @@ jobs:
       - name: Create final snapshots for PVCs before deletion
         run: |
           for pvc in elasticsearch-pvc doctobobo-db-pvc; do
-            volume_id=$(kubectl get pvc $pvc -o jsonpath='{.spec.volumeName}')
-            if [ -n "$volume_id" ]; then
-              echo "Creating snapshot for $pvc before deletion..."
-              snapshot_name="$pvc-final-$(date +%Y%m%d%H%M%S)"
-              scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
+            if kubectl get pvc $pvc >/dev/null 2>&1; then
+              volume_id=$(kubectl get pvc $pvc -o jsonpath='{.spec.volumeName}')
+              if [ -n "$volume_id" ]; then
+                echo "Creating snapshot for $pvc before deletion..."
+                snapshot_name="$pvc-final-$(date +%Y%m%d%H%M%S)"
+                scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
+              else
+                echo "PVC $pvc exists but has no associated volume!"
+              fi
             else
-              echo "PVC $pvc not found!"
+              echo "PVC $pvc not found, skipping snapshot creation."
             fi
           done
 
@@ -216,6 +220,7 @@ jobs:
           kubectl create namespace istio-system || true
           helm upgrade --install istio-base istio/base -n istio-system --create-namespace
           helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
+          helm upgrade --install istio-ingress istio/gateway -n istio-system
 
       - name: Deploy Wazuh
         run: |
