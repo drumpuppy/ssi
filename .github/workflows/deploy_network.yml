@@ -83,7 +83,6 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-    
       # Étape 7 : Clean des Ressources
       - name: Delete network resources
         continue-on-error: true
@@ -93,17 +92,6 @@ jobs:
           kubectl delete -f ./Ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
           kubectl delete ns ingress-nginx --force --grace-period=0
-
-      - name: Deploy Istio with Helm
-        run: |
-          helm repo add istio https://istio-release.storage.googleapis.com/charts
-          helm repo update
-          helm upgrade --install istio-base istio/base -n istio-system --create-namespace
-          helm upgrade --install istiod istio/istiod -n istio-system
-          helm upgrade --install istio-ingressgateway istio/gateway -n istio-system
-          
-          kubectl wait --for=condition=available --timeout=120s deployment/istiod -n istio-system
-
 
       # Étape 8 : Déploiement de NGINX Ingress Controller
       - name: Deploy NGINX Ingress Controller with Helm
@@ -142,44 +130,16 @@ jobs:
         run: kubectl apply -f helm/istio/doctobobo-virtualservice.yaml
 
       # Étape 10 : Récupérer l'IP du Load Balancer
-      - name: Get Istio & NGINX Load Balancer IPs
-        id: get-lb-ips
+      - name: Get Load Balancer IP
+        id: get-lb-ip
         run: |
-          echo "Waiting for Load Balancer IPs to be assigned..."
-      
-          # Fonction pour récupérer l'IP du Load Balancer
-          get_lb_ip() {
-            local svc_name=$1
-            local namespace=$2
-            local ip=""
-            local retries=10  # Nombre de tentatives (ajuster si nécessaire)
-      
-            for i in $(seq 1 $retries); do
-              ip=$(kubectl get svc $svc_name -n $namespace -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-              if [[ -n "$ip" && "$ip" != "null" ]]; then
-                echo "$svc_name IP: $ip"
-                echo "$svc_name=$ip" >> $GITHUB_ENV
-                return 0
-              fi
-              echo "Attempt $i/$retries: Waiting for $svc_name to get an IP..."
-              sleep 30  # Attente entre chaque tentative
-            done
-      
-            echo "Error: $svc_name Load Balancer IP not found."
+          lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
+          if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
+            echo "Error: Load Balancer IP not found."
             exit 1
-          }
-      
-          # Récupérer l'IP d'Istio
-          get_lb_ip istio-ingressgateway istio-system
-      
-          # Récupérer l'IP NGINX
-          get_lb_ip ingress-nginx-controller ingress-nginx
-
-          echo "Istio Load Balancer IP: $istio_lb_ip"
-          echo "NGINX Load Balancer IP: $nginx_lb_ip"
-          echo "istio_lb_ip=$istio_lb_ip" >> $GITHUB_ENV
-          echo "nginx_lb_ip=$nginx_lb_ip" >> $GITHUB_ENV
-
+          fi
+          echo "Load Balancer IP: $lb_ip"
+          echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
       # Étape 11 : Installer ovh
       - name: Install OVH Python SDK
@@ -192,48 +152,43 @@ jobs:
           OVH_APPLICATION_KEY: ${{ secrets.OVH_APP_KEY }}
           OVH_APPLICATION_SECRET: ${{ secrets.OVH_APP_SECRET }}
           OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
-          ISTIO_LB_IP: ${{ env.istio_lb_ip }}
-          NGINX_LB_IP: ${{ env.nginx_lb_ip }}
+          LB_IP: ${{ env.lb_ip }}
         run: |
           python <<EOF
           import ovh
           import os
-
+          
+          # Configurer le client OVH
           client = ovh.Client(
               endpoint='ovh-eu',
               application_key=os.getenv('OVH_APPLICATION_KEY'),
               application_secret=os.getenv('OVH_APPLICATION_SECRET'),
               consumer_key=os.getenv('OVH_CONSUMER_KEY'),
           )
-
+          
+          # Domaine et IP du Load Balancer
           domain = "my-soc.fr"
-          istio_ip = os.getenv('ISTIO_LB_IP')
-          nginx_ip = os.getenv('NGINX_LB_IP')
-
-          # Mapping des subdomains
-          subdomains_mapping = {
-              "doctobobo2": istio_ip,
-              "kibana2": nginx_ip,
-              "wazuh2": nginx_ip
-          }
-
-          # Suppression des anciens enregistrements
-          for subdomain, ip in subdomains_mapping.items():
+          lb_ip = os.getenv('LB_IP')
+          subdomains = ["kibana2", "doctobobo2", "wazuh2"]
+          # subdomains = ["prometheus2", "iris2", "kibana2", "doctobobo2"]
+          
+          # Récupérer et supprimer les enregistrements DNS existants
+          for subdomain in subdomains:
               records = client.get(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain)
               for record_id in records:
                   client.delete(f"/domain/zone/{domain}/record/{record_id}")
                   print(f"Deleted record {record_id} for subdomain {subdomain}")
-
-          # Création des nouveaux enregistrements
-          for subdomain, ip in subdomains_mapping.items():
-              result = client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=ip, ttl=0)
-              print(f"Created new record for {subdomain}: {result}")
-
+          
+          # Ajouter de nouveaux enregistrements DNS
+          for subdomain in subdomains:
+              result = client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=lb_ip, ttl=0)
+              print(f"Created new record: {result}")
+          
+          # Rafraîchir la zone DNS
           client.post(f"/domain/zone/{domain}/refresh")
           print("DNS zone refreshed.")
           EOF
           sleep 20
-
 
       # Étape 13 : Déploiement de cert-manager
       - name: Deploy cert-manager
@@ -246,4 +201,3 @@ jobs:
       - name: Deploy ClusterIssuer
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
-
