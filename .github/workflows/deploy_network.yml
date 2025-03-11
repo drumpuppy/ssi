@@ -145,18 +145,33 @@ jobs:
       - name: Get Istio & NGINX Load Balancer IPs
         id: get-lb-ips
         run: |
-          istio_lb_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          nginx_lb_ip=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "Waiting for Load Balancer IPs to be assigned..."
+      
+          # Fonction pour attendre l'IP du LoadBalancer
+          get_lb_ip() {
+            local svc_name=$1
+            local namespace=$2
+            local ip=""
+            local retries=10  # Nombre de tentatives (ajuster si nécessaire)
+      
+            for i in $(seq 1 $retries); do
+              ip=$(kubectl get svc $svc_name -n $namespace -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+              if [[ -n "$ip" && "$ip" != "null" ]]; then
+                echo "$svc_name IP: $ip"
+                echo "$svc_name=$ip" >> $GITHUB_ENV
+                return 0
+              fi
+              echo "Attempt $i/$retries: Waiting for $svc_name to get an IP..."
+              sleep 30  # Attente entre chaque tentative
+            done
 
-          if [[ -z "$istio_lb_ip" || "$istio_lb_ip" == "null" ]]; then
-            echo "Error: Istio Load Balancer IP not found."
-            exit 1
-          fi
+          echo "Error: $svc_name Load Balancer IP not found."
+          exit 1
+          }
 
-          if [[ -z "$nginx_lb_ip" || "$nginx_lb_ip" == "null" ]]; then
-            echo "Error: NGINX Load Balancer IP not found."
-            exit 1
-          fi
+          get_lb_ip istio-ingressgateway istio-system
+          get_lb_ip ingress-nginx-controller ingress-nginx
+
 
           echo "Istio Load Balancer IP: $istio_lb_ip"
           echo "NGINX Load Balancer IP: $nginx_lb_ip"
