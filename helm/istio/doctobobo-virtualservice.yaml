@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: doctobobo
+  namespace: doctobobo
+spec:
+  hosts:
+  - "doctobobo2.my-soc.fr"
+  gateways:
+  - doctobobo-gateway
+  http:
+  - route:
+    - destination:
+        host: doctobobo
+        port:
+          number: 80
