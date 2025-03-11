@@ -201,5 +201,3 @@ jobs:
       - name: Deploy ClusterIssuer
         run: |
           kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
-
-
