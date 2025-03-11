@@ -121,6 +121,14 @@ jobs:
           kubectl wait --for=condition=ready pod -l app=wazuh-dashboard -n wazuh --timeout=300s
           kubectl get pods -n wazuh
 
+      # Étape 10.7 : Appliquer Istio Gateway pour Doctobobo
+      - name: Apply Istio Gateway for Doctobobo
+        run: kubectl apply -f helm/istio/doctobobo-gateway.yaml
+      
+      # Étape 10.8 : Appliquer Istio VirtualService pour Doctobobo
+      - name: Apply Istio VirtualService for Doctobobo
+        run: kubectl apply -f helm/istio/doctobobo-virtualservice.yaml
+
       # Étape 10 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
         id: get-lb-ip
