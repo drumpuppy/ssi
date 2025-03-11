@@ -46,16 +46,16 @@ jobs:
 
       - name: Create snapshot from PVCs
         run: |
-          declare -A PVC_NAMESPACES
-          PVC_NAMESPACES["elasticsearch-master-elasticsearch-master-0"]="default"
-          PVC_NAMESPACES["mysql-pvc"]="doctobobo"
+          # Liste des PVCs avec leurs namespaces
+          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
 
-          for pvc in "${!PVC_NAMESPACES[@]}"; do
-            namespace="${PVC_NAMESPACES[$pvc]}"
-            
+          for entry in "${PVC_LIST[@]}"; do
+            namespace=$(echo $entry | awk '{print $1}')
+            pvc=$(echo $entry | awk '{print $2}')
+
             echo "Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
-            
-            # Vérifier si le PVC existe
+
+            # Récupérer le nom du volume depuis Kubernetes
             pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
 
             if [ -z "$pvc_name" ]; then
@@ -64,7 +64,7 @@ jobs:
             fi
 
             # Récupérer l'ID Scaleway du volume
-            volume_id=$(scw instance volume list --output json | jq -r --arg pvc_name "$pvc_name" '.[] | select(.name | contains($pvc_name)) | .id')
+            volume_id=$(scw instance volume list --output json | jq -r --arg pvc_name "$pvc_name" '.[] | select(.name == $pvc_name) | .id')
 
             if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
               echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
@@ -74,5 +74,4 @@ jobs:
             echo "✅ Creating snapshot for PVC $pvc ($pvc_name) in namespace $namespace..."
             snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
             scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
-          done
           done
