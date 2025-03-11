@@ -48,13 +48,26 @@ jobs:
         run: |
           for namespace in default doctobobo; do
             for pvc in elasticsearch-master-elasticsearch-master-0 mysql-pvc; do
-              volume_id=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}')
-              if [ -n "$volume_id" ]; then
-                echo "Creating snapshot for $pvc in $namespace..."
-                snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
-                scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
-              else
+              echo "Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
+              
+              # Récupération du nom du volume lié au PVC
+              pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}')
+              
+              if [ -z "$pvc_name" ]; then
                 echo "⚠️ PVC $pvc not found in namespace $namespace, skipping..."
+                continue
               fi
+              
+              # Récupération de l'ID Scaleway correspondant au PVC
+              volume_id=$(scw instance volume list --output json | jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id')
+
+              if [ -z "$volume_id" ]; then
+                echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
+                continue
+              fi
+
+              echo "✅ Creating snapshot for PVC $pvc ($pvc_name) in namespace $namespace..."
+              snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+              scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
             done
           done
