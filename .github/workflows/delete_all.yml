@@ -124,18 +124,18 @@ jobs:
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
 
-      - name: Create final snapshots for PVCs before deletion
-        run: |
-          for pvc in elasticsearch-pvc doctobobo-db-pvc; do
-            volume_id=$(kubectl get pvc $pvc -o jsonpath='{.spec.volumeName}')
-            if [ -n "$volume_id" ]; then
-              echo "Creating snapshot for $pvc before deletion..."
-              snapshot_name="$pvc-final-$(date +%Y%m%d%H%M%S)"
-              scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
-            else
-              echo "PVC $pvc not found!"
-            fi
-          done
+      # - name: Create final snapshots for PVCs before deletion
+      #   run: |
+      #     for pvc in elasticsearch-pvc doctobobo-db-pvc; do
+      #       volume_id=$(kubectl get pvc $pvc -o jsonpath='{.spec.volumeName}')
+      #       if [ -n "$volume_id" ]; then
+      #         echo "Creating snapshot for $pvc before deletion..."
+      #         snapshot_name="$pvc-final-$(date +%Y%m%d%H%M%S)"
+      #         scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
+      #       else
+      #         echo "PVC $pvc not found!"
+      #       fi
+      #     done
       
       - name: Clean Up Doctobobo
         continue-on-error: true
