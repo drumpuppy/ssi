@@ -49,14 +49,17 @@ jobs:
           PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
 
           echo "📌 Debug: Listing all Scaleway volumes"
-          scw instance volume list --output json
+          scw instance volume list --region=fr-par --output json | tee volumes.json
+          
+          echo "📌 Debug: Displaying volumes.json"
+          cat volumes.json | jq '.'
 
           for entry in "${PVC_LIST[@]}"; do
             namespace=$(echo $entry | awk '{print $1}')
             pvc=$(echo $entry | awk '{print $2}')
 
             echo "🔍 Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
-            
+
             # Vérifier si le PVC existe
             pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
             echo "📌 Debug: Retrieved PVC Name: $pvc_name"
@@ -67,7 +70,7 @@ jobs:
             fi
 
             echo "🔍 Searching for volume in Scaleway matching PVC name: $pvc_name"
-            volume_id=$(scw instance volume list --output json | jq -r --arg pvc_name "$pvc_name" '.[] | select(.name == $pvc_name) | .id')
+            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.[] | select(.name | contains($pvc_name)) | .id' volumes.json)
             echo "📌 Debug: Scaleway Volume ID Found: $volume_id"
 
             if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
