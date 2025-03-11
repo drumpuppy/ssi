@@ -48,9 +48,10 @@ jobs:
         run: |
           PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
 
-          echo "📌 Debug: Listing all Scaleway volumes"
-          scw instance volume list --region=fr-par --output json | tee volumes.json
-          
+          echo "📌 Debug: Listing all Scaleway Block Storage volumes"
+          curl -s -H "X-Auth-Token: $SCW_SECRET_KEY" \
+               "https://api.scaleway.com/block/v1alpha1/zones/$SCW_DEFAULT_ZONE/volumes" | tee volumes.json
+
           echo "📌 Debug: Displaying volumes.json"
           cat volumes.json | jq '.'
 
@@ -60,7 +61,7 @@ jobs:
 
             echo "🔍 Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
 
-            # Vérifier si le PVC existe
+            # Récupérer le nom du volume depuis Kubernetes
             pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
             echo "📌 Debug: Retrieved PVC Name: $pvc_name"
 
@@ -69,8 +70,8 @@ jobs:
               continue
             fi
 
-            echo "🔍 Searching for volume in Scaleway matching PVC name: $pvc_name"
-            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.[] | select(.name | contains($pvc_name)) | .id' volumes.json)
+            echo "🔍 Searching for volume in Scaleway Block Storage matching PVC name: $pvc_name"
+            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id' volumes.json)
             echo "📌 Debug: Scaleway Volume ID Found: $volume_id"
 
             if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
@@ -80,5 +81,11 @@ jobs:
 
             echo "✅ Creating snapshot for PVC $pvc ($pvc_name) in namespace $namespace..."
             snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
-            scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
+            curl -X POST -H "X-Auth-Token: $SCW_SECRET_KEY" \
+                 -H "Content-Type: application/json" \
+                 -d '{
+                      "name": "'"$snapshot_name"'",
+                      "volume_id": "'"$volume_id"'"
+                    }' \
+                 "https://api.scaleway.com/block/v1alpha1/zones/$SCW_DEFAULT_ZONE/snapshots"
           done
