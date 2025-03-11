@@ -223,4 +223,4 @@ jobs:
 
       - name: Deploy Snapshot CronJob
         run: |
-          kubectl apply -f ./helm/k8s_snapshot_cronjob.yml
+          kubectl apply -f ./helm/k8s_snapshot_cronjob.yaml
