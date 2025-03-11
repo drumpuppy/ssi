@@ -228,4 +228,8 @@ jobs:
 
       - name: Deploy Snapshot CronJob
         run: |
+          kubectl create secret generic scaleway-secrets \
+            --from-literal=SCW_SECRET_KEY="${{ secrets.SCW_SECRET_KEY }}" \
+            --namespace=default
+
           kubectl apply -f ./helm/k8s_snapshot_cronjob.yaml

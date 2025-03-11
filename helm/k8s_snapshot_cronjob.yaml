@@ -4,7 +4,7 @@ metadata:
   name: pvc-snapshot-job
   namespace: default
 spec:
-  schedule: "0 * * * *"  # Exécuter toutes les heures
+  schedule: "*/10 * * * *"  # Exécuter toutes les heures
   jobTemplate:
     spec:
       template:
