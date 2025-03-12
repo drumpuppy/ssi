@@ -57,6 +57,12 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
+      - name: Clean Up
+        continue-on-error: true
+        run: |
+          kubectl delete -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
+          helm uninstall elasticsearch
+
       - name: Fetch Scaleway Volumes
         run: |
           echo "Fetching Scaleway volumes..."
@@ -164,3 +170,14 @@ jobs:
               --storage-class=scaleway-block-storage \
               --volume-name=restored-$pvc
           done
+
+      - name: redeploy ressources
+        continue-on-error: true
+        run: |
+          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
+          helm repo add elastic https://helm.elastic.co
+          helm repo update
+          helm install elasticsearch elastic/elasticsearch \
+            --create-namespace \
+            --namespace default \
+            --values ./helm/values-elasticsearch.yaml
