@@ -152,12 +152,12 @@ jobs:
               fi
             fi
 
-            # Restore the volume from snapshot in Scaleway
+            # Restore the volume from snapshot in Scaleway (FIXED JSON FORMAT)
             restored_volume=$(curl -s -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
               -H "Content-Type: application/json" \
               -d '{
                 "name": "restored-'$pvc'",
-                "from_snapshot": "'$latest_snapshot'",
+                "from_snapshot": { "snapshot_id": "'$latest_snapshot'" },
                 "project_id": "'$SCW_DEFAULT_PROJECT_ID'",
                 "zone": "'$SCW_DEFAULT_ZONE'"
               }' \
