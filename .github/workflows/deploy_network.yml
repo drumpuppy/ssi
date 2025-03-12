@@ -93,8 +93,11 @@ jobs:
           kubectl delete -f ./Ingress/network.yaml
           kubectl delete ns ingress-nginx --force --grace-period=0
 
-      # Étape 8 : Déploiement de NGINX Ingress Controller
-      - name: Deploy NGINX Ingress Controller with Helm
+
+
+          
+
+      - name: Deploy NGINX Ingress Controller
         run: |
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
           helm repo update
@@ -104,91 +107,89 @@ jobs:
 
           kubectl wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx
 
-      # Étape 9 : Déploiement de l'Ingress
-      - name: Deploy Ingress
+      - name: Deploy Ingress for NGINX Apps
         run: |
           kubectl apply -f ./Ingress/network.yaml
 
-      # Étape 10.5 : Déploiement de Wazuh avec Kustomize
-      - name: Deploy Wazuh with Kustomize
-        run: |
-          kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
-
-      # Étape 10.6 : Vérification du déploiement de Wazuh
-      - name: Check Wazuh Deployment
-        run: |
-          echo "Waiting for Wazuh pods to be ready..."
-          kubectl wait --for=condition=ready pod -l app=wazuh-dashboard -n wazuh --timeout=300s
-          kubectl get pods -n wazuh
-
-      # Étape 10.7 : Appliquer Istio Gateway pour Doctobobo
-      - name: Apply Istio Gateway for Doctobobo
+      - name: Deploy Istio Gateway for Doctobobo
         run: kubectl apply -f helm/istio/doctobobo-gateway.yaml
-      
-      # Étape 10.8 : Appliquer Istio VirtualService pour Doctobobo
-      - name: Apply Istio VirtualService for Doctobobo
+
+      - name: Deploy Istio VirtualService for Doctobobo
         run: kubectl apply -f helm/istio/doctobobo-virtualservice.yaml
 
-      # Étape 10 : Récupérer l'IP du Load Balancer
-      - name: Get Load Balancer IP
-        id: get-lb-ip
+      - name: Get Load Balancer IPs (NGINX & Istio)
+        id: get-lb-ips
         run: |
-          lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
-          if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
-            echo "Error: Load Balancer IP not found."
+          nginx_lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
+          istio_lb_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+          if [[ -z "$nginx_lb_ip" || "$nginx_lb_ip" == "null" ]]; then
+            echo "Error: NGINX Load Balancer IP not found."
             exit 1
           fi
-          echo "Load Balancer IP: $lb_ip"
-          echo "lb_ip=$lb_ip" >> $GITHUB_ENV
 
-      # Étape 11 : Installer ovh
+          if [[ -z "$istio_lb_ip" || "$istio_lb_ip" == "null" ]]; then
+            echo "Error: Istio Load Balancer IP not found."
+            exit 1
+          fi
+
+          echo "NGINX LB IP: $nginx_lb_ip"
+          echo "Istio LB IP: $istio_lb_ip"
+
+          echo "nginx_lb_ip=$nginx_lb_ip" >> $GITHUB_ENV
+          echo "istio_lb_ip=$istio_lb_ip" >> $GITHUB_ENV
+
       - name: Install OVH Python SDK
-        run: |
-          pip install ovh
+        run: pip install ovh
 
-      # Étape 12 : Gérer les domaines dans OVH
       - name: Update OVH DNS Records
         env:
           OVH_APPLICATION_KEY: ${{ secrets.OVH_APP_KEY }}
           OVH_APPLICATION_SECRET: ${{ secrets.OVH_APP_SECRET }}
           OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
-          LB_IP: ${{ env.lb_ip }}
+          NGINX_LB_IP: ${{ env.nginx_lb_ip }}
+          ISTIO_LB_IP: ${{ env.istio_lb_ip }}
         run: |
           python <<EOF
           import ovh
           import os
-          
-          # Configurer le client OVH
+
           client = ovh.Client(
               endpoint='ovh-eu',
               application_key=os.getenv('OVH_APPLICATION_KEY'),
               application_secret=os.getenv('OVH_APPLICATION_SECRET'),
               consumer_key=os.getenv('OVH_CONSUMER_KEY'),
           )
-          
-          # Domaine et IP du Load Balancer
+
           domain = "my-soc.fr"
-          lb_ip = os.getenv('LB_IP')
-          subdomains = ["kibana2", "doctobobo2", "wazuh2"]
-          # subdomains = ["prometheus2", "iris2", "kibana2", "doctobobo2"]
-          
-          # Récupérer et supprimer les enregistrements DNS existants
-          for subdomain in subdomains:
+          nginx_lb_ip = os.getenv('NGINX_LB_IP')
+          istio_lb_ip = os.getenv('ISTIO_LB_IP')
+
+          apps_on_nginx = ["kibana2", "wazuh2"]
+          app_on_istio = "doctobobo2"
+
+          # Supprimer les anciens enregistrements
+          for subdomain in apps_on_nginx + [app_on_istio]:
               records = client.get(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain)
               for record_id in records:
                   client.delete(f"/domain/zone/{domain}/record/{record_id}")
-                  print(f"Deleted record {record_id} for subdomain {subdomain}")
-          
-          # Ajouter de nouveaux enregistrements DNS
-          for subdomain in subdomains:
-              result = client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=lb_ip, ttl=0)
-              print(f"Created new record: {result}")
-          
-          # Rafraîchir la zone DNS
+                  print(f"Deleted record {record_id} for {subdomain}")
+
+          # Ajouter Doctobobo sur Istio
+          client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=app_on_istio, target=istio_lb_ip, ttl=0)
+          print(f"Created Doctobobo record pointing to {istio_lb_ip}")
+
+          # Ajouter les autres apps sur NGINX
+          for subdomain in apps_on_nginx:
+              client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=nginx_lb_ip, ttl=0)
+              print(f"Created {subdomain} record pointing to {nginx_lb_ip}")
+
           client.post(f"/domain/zone/{domain}/refresh")
           print("DNS zone refreshed.")
           EOF
-          sleep 20
+
+
+          
 
       # Étape 13 : Déploiement de cert-manager
       - name: Deploy cert-manager
