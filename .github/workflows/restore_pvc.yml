@@ -88,13 +88,26 @@ jobs:
 
             echo "✅ Found snapshot for $pvc: $latest_snapshot. Restoring..."
 
-            # Get the current volume ID of the PVC (created by Helm)
-            current_volume_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
+            # Detect stuck PVCs and remove finalizers if necessary
+            if kubectl get pvc $pvc -n $namespace &>/dev/null; then
+              pvc_status=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.status.phase}')
+              if [ "$pvc_status" == "Terminating" ]; then
+                echo "⚠️ PVC $pvc is stuck in Terminating state! Fixing..."
 
-            if [ -n "$current_volume_name" ]; then
-              # Delete the automatically created PVC (because it's empty)
-              echo "🗑️ Deleting auto-created PVC $pvc in namespace $namespace..."
-              kubectl delete pvc $pvc -n $namespace --ignore-not-found
+                # Remove Finalizer
+                finalizers=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.metadata.finalizers}')
+                if [[ "$finalizers" == *"pvc-protection"* ]]; then
+                  echo "🔧 Removing finalizer from PVC $pvc..."
+                  kubectl patch pvc $pvc -n $namespace --type=json -p '[{"op": "remove", "path": "/metadata/finalizers"}]'
+                fi
+
+                # Force delete the PVC
+                echo "🗑️ Force deleting stuck PVC $pvc..."
+                kubectl delete pvc $pvc -n $namespace --grace-period=0 --force
+              else
+                echo "🗑️ Deleting auto-created PVC $pvc in namespace $namespace..."
+                kubectl delete pvc $pvc -n $namespace --ignore-not-found
+              fi
             fi
 
             # Restore the volume from snapshot in Scaleway
@@ -103,7 +116,8 @@ jobs:
               -d '{
                 "name": "restored-'$pvc'",
                 "from_snapshot": "'$latest_snapshot'",
-                "project_id": "'$SCW_DEFAULT_PROJECT_ID'"
+                "project_id": "'$SCW_DEFAULT_PROJECT_ID'",
+                "zone": "'$SCW_DEFAULT_ZONE'"
               }' \
               "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes")
 
