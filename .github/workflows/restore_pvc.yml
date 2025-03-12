@@ -1,4 +1,4 @@
-name: Deploy Helm Charts
+name: Restore PVC
 
 on:
   workflow_dispatch:
