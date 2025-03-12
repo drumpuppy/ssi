@@ -62,8 +62,8 @@ jobs:
 
           echo "📌 Debug: Checking SCW_PROJECT_ID: ${SCW_PROJECT_ID}"
 
-          if [[ -z "$SCW_PROJECT_ID" ]]; then
-            echo "❌ SCW_PROJECT_ID is empty! Exiting..."
+          if [[ -z "$SCW_DEFAULT_PROJECT_ID" ]]; then
+            echo "❌ SCW_DEFAULT_PROJECT_ID is empty! Exiting..."
             exit 1
           fi
 
