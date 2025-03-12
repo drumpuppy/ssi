@@ -224,12 +224,12 @@ jobs:
 
             echo "✅ Found snapshot for $pvc: $latest_snapshot. Restoring..."
 
-            # Attempt to create a new volume from the snapshot
+            # Attempt to create a new volume from the snapshot with correct parameters
             restored_volume=$(curl -s -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
               -H "Content-Type: application/json" \
               -d '{
                 "name": "restored-'$pvc'",
-                "from_snapshot_id": "'$latest_snapshot'",
+                "from": {"snapshot_id": "'$latest_snapshot'"},
                 "project_id": "'$SCW_DEFAULT_PROJECT_ID'",
                 "zone": "'$SCW_DEFAULT_ZONE'"
               }' \
@@ -244,6 +244,22 @@ jobs:
             fi
 
             echo "✅ PVC $pvc restored with volume ID $restored_volume_id."
+
+            # Now create the corresponding PVC in Kubernetes
+            echo "🔄 Creating PVC $pvc in namespace $namespace..."
+            cat <<EOF | kubectl apply -n $namespace -f -
+            apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: $pvc
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 30Gi  # Adjust size as needed
+              storageClassName: "sbs-default"
+            EOF
           done
 
 
