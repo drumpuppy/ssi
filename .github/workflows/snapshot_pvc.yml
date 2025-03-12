@@ -48,11 +48,11 @@ jobs:
         run: |
           PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
 
-          echo "📌 Debug: Checking SCW_DEFAULT_ZONE: ${{ SCW_DEFAULT_ZONE }}"
+          echo "📌 Debug: Checking SCW_DEFAULT_ZONE: ${SCW_DEFAULT_ZONE}"
           
           echo "📌 Debug: Listing all Scaleway Block Storage volumes"
-          curl -s -H "X-Auth-Token: $S{{ SCW_SECRET_KEY }}" \
-               "https://api.scaleway.com/block/v1alpha1/zones/${{ SCW_DEFAULT_ZONE }}/volumes" | tee volumes.json
+          curl -s -H "X-Auth-Token: $S{SCW_SECRET_KEY}" \
+               "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | tee volumes.json
 
           echo "📌 Debug: Displaying volumes.json"
           cat volumes.json | jq '.'
