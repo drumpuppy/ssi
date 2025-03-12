@@ -200,7 +200,7 @@ jobs:
                 "capacity": { "storage": "30Gi" },
                 "accessModes": [ "ReadWriteOnce" ],
                 "persistentVolumeReclaimPolicy": "Retain",
-                "storageClassName": "scaleway-block-storage",
+                "storageClassName": "sbs-default",
                 "csi": {
                   "driver": "csi.scaleway.com",
                   "volumeHandle": "'$restored_volume_id'"
@@ -220,7 +220,7 @@ jobs:
                 "resources": {
                   "requests": { "storage": "30Gi" }
                 },
-                "storageClassName": "scaleway-block-storage",
+                "storageClassName": "sbs-default",
                 "volumeName": "restored-'$pvc'"
               }
             }' | kubectl apply -n $namespace -f -
