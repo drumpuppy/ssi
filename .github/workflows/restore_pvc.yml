@@ -130,7 +130,7 @@ jobs:
 
             echo "✅ Found snapshot for $pvc: $latest_snapshot. Restoring..."
 
-            # Detect stuck PVCs and remove finalizers if necessary
+            # **Step 1: Ensure Deletion of Existing K8s PVC**
             if kubectl get pvc $pvc -n $namespace &>/dev/null; then
               pvc_status=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.status.phase}')
               if [ "$pvc_status" == "Terminating" ]; then
@@ -152,7 +152,24 @@ jobs:
               fi
             fi
 
-            # Restore the volume from snapshot in Scaleway (FIXED JSON FORMAT)
+            # **Step 2: Ensure Deletion of Existing K8s PV**
+            if kubectl get pv restored-$pvc &>/dev/null; then
+              echo "🗑️ Deleting existing PersistentVolume restored-$pvc..."
+              kubectl delete pv restored-$pvc --ignore-not-found
+            fi
+
+            # **Step 3: Delete old Scaleway Block Storage Volume (if needed)**
+            existing_volume_id=$(curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | \
+              jq -r --arg pvc "$pvc" '.volumes[] | select(.name | contains($pvc)) | .id')
+
+            if [ -n "$existing_volume_id" ] && [ "$existing_volume_id" != "null" ]; then
+              echo "🗑️ Deleting existing Scaleway volume for PVC $pvc..."
+              curl -s -X DELETE -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes/$existing_volume_id"
+            fi
+
+            # **Step 4: Restore the Volume from Snapshot in Scaleway**
             restored_volume=$(curl -s -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
               -H "Content-Type: application/json" \
               -d '{
@@ -173,7 +190,7 @@ jobs:
 
             echo "✅ PVC $pvc restored with volume ID $restored_volume_id."
 
-            # Wait for the restored volume to become available
+            # **Step 5: Wait for the Restored Volume to be Available**
             echo "⏳ Waiting for restored volume to become available..."
             for i in {1..10}; do
               volume_status=$(curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
@@ -187,45 +204,6 @@ jobs:
               echo "🔄 Waiting for volume to be available... ($i/10)"
               sleep 10
             done
-
-            # Manually re-create the PV in Kubernetes, binding it to the restored volume
-            echo "🔄 Creating PersistentVolume for restored PVC..."
-            echo '{
-              "apiVersion": "v1",
-              "kind": "PersistentVolume",
-              "metadata": {
-                "name": "restored-'$pvc'"
-              },
-              "spec": {
-                "capacity": { "storage": "30Gi" },
-                "accessModes": [ "ReadWriteOnce" ],
-                "persistentVolumeReclaimPolicy": "Retain",
-                "storageClassName": "sbs-default",
-                "csi": {
-                  "driver": "csi.scaleway.com",
-                  "volumeHandle": "'$restored_volume_id'"
-                }
-              }
-            }' | kubectl apply -n $namespace -f -
-
-            echo "🔄 Creating PersistentVolumeClaim for restored PVC..."
-            echo '{
-              "apiVersion": "v1",
-              "kind": "PersistentVolumeClaim",
-              "metadata": {
-                "name": "'$pvc'"
-              },
-              "spec": {
-                "accessModes": [ "ReadWriteOnce" ],
-                "resources": {
-                  "requests": { "storage": "30Gi" }
-                },
-                "storageClassName": "sbs-default",
-                "volumeName": "restored-'$pvc'"
-              }
-            }' | kubectl apply -n $namespace -f -
-
-          done
 
 
       - name: Deploy Elasticsearch
