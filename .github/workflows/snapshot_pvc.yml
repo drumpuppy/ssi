@@ -52,20 +52,54 @@ jobs:
       - name: Create snapshot from PVCs
         run: |
           PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+
+          echo "📌 Debug: Checking SCW_DEFAULT_ZONE: ${SCW_DEFAULT_ZONE}"
+
+          if [[ -z "$SCW_DEFAULT_ZONE" ]]; then
+            echo "❌ SCW_DEFAULT_ZONE is empty! Exiting..."
+            exit 1
+          fi
+
+          echo "📌 Debug: Checking SCW_PROJECT_ID: ${SCW_PROJECT_ID}"
+
+          if [[ -z "$SCW_DEFAULT_PROJECT_ID" ]]; then
+            echo "❌ SCW_DEFAULT_PROJECT_ID is empty! Exiting..."
+            exit 1
+          fi
+
+          echo "📌 Debug: Listing all Scaleway Block Storage volumes"
+          curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+               "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | tee volumes.json
+
+          echo "📌 Debug: Displaying volumes.json"
+          cat volumes.json | jq '.'
+
           for entry in "${PVC_LIST[@]}"; do
             namespace=$(echo $entry | awk '{print $1}')
             pvc=$(echo $entry | awk '{print $2}')
+
+            echo "🔍 Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
+
             pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
+            echo "📌 Debug: Retrieved PVC Name: $pvc_name"
+
             if [ -z "$pvc_name" ]; then
               echo "⚠️ PVC $pvc not found in namespace $namespace, skipping..."
               continue
             fi
+
+            echo "🔍 Searching for volume in Scaleway Block Storage matching PVC name: $pvc_name"
             volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id' volumes.json)
+            echo "📌 Debug: Scaleway Volume ID Found: $volume_id"
+
             if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
               echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
               continue
             fi
+
+            echo "✅ Creating snapshot for PVC $pvc ($pvc_name) in namespace $namespace..."
             snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+
             curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
                  -H "Content-Type: application/json" \
                  -d '{
