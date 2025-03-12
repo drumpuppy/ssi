@@ -188,23 +188,43 @@ jobs:
               sleep 10
             done
 
-            # Manually re-create the PVC in Kubernetes, binding it to the restored volume
+            # Manually re-create the PV in Kubernetes, binding it to the restored volume
             echo "🔄 Creating PersistentVolume for restored PVC..."
-            kubectl create pv restored-$pvc \
-              --namespace=$namespace \
-              --storage=30Gi \
-              --access-mode=ReadWriteOnce \
-              --storage-class=scaleway-block-storage \
-              --volume-handle=$restored_volume_id \
-              --persistent-volume-reclaim-policy=Retain
+            echo '{
+              "apiVersion": "v1",
+              "kind": "PersistentVolume",
+              "metadata": {
+                "name": "restored-'$pvc'"
+              },
+              "spec": {
+                "capacity": { "storage": "30Gi" },
+                "accessModes": [ "ReadWriteOnce" ],
+                "persistentVolumeReclaimPolicy": "Retain",
+                "storageClassName": "scaleway-block-storage",
+                "csi": {
+                  "driver": "csi.scaleway.com",
+                  "volumeHandle": "'$restored_volume_id'"
+                }
+              }
+            }' | kubectl apply -n $namespace -f -
 
             echo "🔄 Creating PersistentVolumeClaim for restored PVC..."
-            kubectl create pvc $pvc \
-              --namespace=$namespace \
-              --storage=30Gi \
-              --access-mode=ReadWriteOnce \
-              --storage-class=scaleway-block-storage \
-              --volume-name=restored-$pvc
+            echo '{
+              "apiVersion": "v1",
+              "kind": "PersistentVolumeClaim",
+              "metadata": {
+                "name": "'$pvc'"
+              },
+              "spec": {
+                "accessModes": [ "ReadWriteOnce" ],
+                "resources": {
+                  "requests": { "storage": "30Gi" }
+                },
+                "storageClassName": "scaleway-block-storage",
+                "volumeName": "restored-'$pvc'"
+              }
+            }' | kubectl apply -n $namespace -f -
+
           done
 
 
