@@ -57,6 +57,67 @@ jobs:
           fi
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
+      - name: Create snapshot from PVCs
+        run: |
+          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+
+          echo "📌 Debug: Checking SCW_DEFAULT_ZONE: ${SCW_DEFAULT_ZONE}"
+
+          if [[ -z "$SCW_DEFAULT_ZONE" ]]; then
+            echo "❌ SCW_DEFAULT_ZONE is empty! Exiting..."
+            exit 1
+          fi
+
+          echo "📌 Debug: Checking SCW_PROJECT_ID: ${SCW_PROJECT_ID}"
+
+          if [[ -z "$SCW_DEFAULT_PROJECT_ID" ]]; then
+            echo "❌ SCW_DEFAULT_PROJECT_ID is empty! Exiting..."
+            exit 1
+          fi
+
+          echo "📌 Debug: Listing all Scaleway Block Storage volumes"
+          curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+               "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | tee volumes.json
+
+          echo "📌 Debug: Displaying volumes.json"
+          cat volumes.json | jq '.'
+
+          for entry in "${PVC_LIST[@]}"; do
+            namespace=$(echo $entry | awk '{print $1}')
+            pvc=$(echo $entry | awk '{print $2}')
+
+            echo "🔍 Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
+
+            pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
+            echo "📌 Debug: Retrieved PVC Name: $pvc_name"
+
+            if [ -z "$pvc_name" ]; then
+              echo "⚠️ PVC $pvc not found in namespace $namespace, skipping..."
+              continue
+            fi
+
+            echo "🔍 Searching for volume in Scaleway Block Storage matching PVC name: $pvc_name"
+            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id' volumes.json)
+            echo "📌 Debug: Scaleway Volume ID Found: $volume_id"
+
+            if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
+              echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
+              continue
+            fi
+
+            echo "✅ Creating snapshot for PVC $pvc ($pvc_name) in namespace $namespace..."
+            snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+
+            curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                 -H "Content-Type: application/json" \
+                 -d '{
+                      "name": "'"$snapshot_name"'",
+                      "volume_id": "'"$volume_id"'",
+                      "project_id": "'"$SCW_DEFAULT_PROJECT_ID"'"
+                    }' \
+                 "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/snapshots"
+          done
+
       - name: Uninstall All Helm Charts
         continue-on-error: true
         run: |
@@ -130,33 +191,6 @@ jobs:
           kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
-
-      - name: Create snapshot from PVCs before deletion
-        run: |
-          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
-          for entry in "${PVC_LIST[@]}"; do
-            namespace=$(echo $entry | awk '{print $1}')
-            pvc=$(echo $entry | awk '{print $2}')
-            pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
-            if [ -z "$pvc_name" ]; then
-              echo "⚠️ PVC $pvc not found in namespace $namespace, skipping..."
-              continue
-            fi
-            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id' volumes.json)
-            if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
-              echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
-              continue
-            fi
-            snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
-            curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-                 -H "Content-Type: application/json" \
-                 -d '{
-                      "name": "'"$snapshot_name"'",
-                      "volume_id": "'"$volume_id"'",
-                      "project_id": "'"$SCW_DEFAULT_PROJECT_ID"'"
-                    }' \
-                 "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/snapshots"
-          done
       
       - name: Clean Up Doctobobo
         continue-on-error: true
