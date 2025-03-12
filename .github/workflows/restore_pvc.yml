@@ -4,17 +4,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  restore_pvc:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Install Helm
-        run: |
-          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-          chmod 700 get_helm.sh
-          ./get_helm.sh
 
       - name: Install Scaleway CLI
         run: |
@@ -31,20 +25,12 @@ jobs:
           SCW_DEFAULT_ZONE: fr-par-1
         run: |
           mkdir -p ~/.config/scw
-          touch ~/.config/scw/config.yaml
           scw config set access-key="${SCW_ACCESS_KEY}"
           scw config set secret-key="${SCW_SECRET_KEY}"
           scw config set default-organization-id="${SCW_DEFAULT_ORGANIZATION_ID}"
           scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
-
-          export SCW_DEFAULT_ZONE=$(scw config get default-zone)
-          echo "SCW_DEFAULT_ZONE=$SCW_DEFAULT_ZONE" >> $GITHUB_ENV
-          export SCW_SECRET_KEY="${SCW_SECRET_KEY}"
-          echo "SCW_SECRET_KEY=${SCW_SECRET_KEY}" >> $GITHUB_ENV
-          export SCW_DEFAULT_PROJECT_ID=$(scw config get default-project-id)
-          echo "SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID}" >> $GITHUB_ENV
 
       - name: Configure kubeconfig
         run: |
@@ -54,9 +40,8 @@ jobs:
             echo "Error: Kubernetes cluster ID not found or is not valid."
             exit 1
           fi
-          echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
-          
+
       - name: Fetch Scaleway Volumes
         run: |
           echo "Fetching Scaleway volumes..."
@@ -91,9 +76,7 @@ jobs:
             # Get the current volume ID of the PVC (created by Helm)
             current_volume_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
 
-            if [ -z "$current_volume_name" ]; then
-              echo "⚠️ No existing PVC found for $pvc, it might have been manually removed. Continuing..."
-            else
+            if [ -n "$current_volume_name" ]; then
               # Delete the automatically created PVC (because it's empty)
               echo "🗑️ Deleting auto-created PVC $pvc in namespace $namespace..."
               kubectl delete pvc $pvc -n $namespace --ignore-not-found
@@ -104,9 +87,8 @@ jobs:
               -H "Content-Type: application/json" \
               -d '{
                 "name": "restored-'$pvc'",
-                "from_snapshot": {"snapshot_id": "'$latest_snapshot'"},
-                "project_id": "'$SCW_DEFAULT_PROJECT_ID'",
-                "zone": "'$SCW_DEFAULT_ZONE'"
+                "from_snapshot": "'$latest_snapshot'",
+                "project_id": "'$SCW_DEFAULT_PROJECT_ID'"
               }' \
               "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes")
 
@@ -120,37 +102,52 @@ jobs:
 
             echo "✅ PVC $pvc restored with volume ID $restored_volume_id."
 
+            # Wait for the restored volume to become available
+            echo "⏳ Waiting for restored volume to become available..."
+            for i in {1..10}; do
+              volume_status=$(curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes/$restored_volume_id" | \
+                jq -r '.status')
+
+              if [ "$volume_status" == "available" ]; then
+                echo "✅ Restored volume is now available!"
+                break
+              fi
+              echo "🔄 Waiting for volume to be available... ($i/10)"
+              sleep 10
+            done
+
             # Manually re-create the PVC in Kubernetes, binding it to the restored volume
             echo "🔄 Creating PVC $pvc in namespace $namespace and binding to restored volume..."
             cat <<EOF | kubectl apply -n $namespace -f -
-            apiVersion: v1
-            kind: PersistentVolume
-            metadata:
-              name: restored-$pvc
-            spec:
-              capacity:
-                storage: 30Gi  # Adjust size as needed
-              accessModes:
-                - ReadWriteOnce
-              persistentVolumeReclaimPolicy: Retain
-              storageClassName: scaleway-block-storage
-              csi:
-                driver: csi.scaleway.com
-                volumeHandle: $restored_volume_id
-            EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: restored-$pvc
+spec:
+  capacity:
+    storage: 30Gi  # Adjust size as needed
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: scaleway-block-storage
+  csi:
+    driver: csi.scaleway.com
+    volumeHandle: $restored_volume_id
+EOF
 
             cat <<EOF | kubectl apply -n $namespace -f -
-            apiVersion: v1
-            kind: PersistentVolumeClaim
-            metadata:
-              name: $pvc
-            spec:
-              accessModes:
-                - ReadWriteOnce
-              resources:
-                requests:
-                  storage: 30Gi
-              storageClassName: scaleway-block-storage
-              volumeName: restored-$pvc
-            EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+  storageClassName: scaleway-block-storage
+  volumeName: restored-$pvc
+EOF
           done
