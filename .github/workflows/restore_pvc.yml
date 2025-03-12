@@ -65,7 +65,39 @@ jobs:
           else
             echo "Elastic not installed in the default namespace."
           fi
+
+          if helm list -n default | grep -q 'logstash'; then
+            helm uninstall logstash --namespace default
+          else
+            echo "Logstash not installed in the default namespace."
+          fi
+
+          if helm list -n default | grep -q 'filebeat'; then
+            helm uninstall filebeat --namespace default
+          else
+            echo "Filebeat not installed in the default namespace."
+          fi
+
+          if helm list -n default | grep -q 'kibana'; then
+            echo "Uninstalling Kibana in the background..."
+            helm uninstall kibana --namespace default --wait=false &
+          else
+            echo "Kibana not installed in the default namespace."
+          fi
+
           kubectl delete -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
+
+      - name: Clean Up Kibana Resources
+        continue-on-error: true
+        run: |
+          echo "Attempting to clean up Kibana resources..."
+          kubectl delete sa post-delete-kibana-kibana -n default || echo "ServiceAccount already deleted or not found"
+          kubectl delete cm kibana-kibana-helm-scripts -n default || echo "ConfigMap already deleted or not found"
+          kubectl delete job post-delete-kibana-kibana -n default || echo "Job already deleted or not found"
+          kubectl delete role post-delete-kibana-kibana -n default || echo "Role already deleted or not found"
+          kubectl delete rolebinding post-delete-kibana-kibana -n default || echo "RoleBinding already deleted or not found"
+          kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
+          kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
 
       - name: Fetch Scaleway Volumes
         run: |
@@ -175,13 +207,52 @@ jobs:
               --volume-name=restored-$pvc
           done
 
-      - name: redeploy ressources
-        continue-on-error: true
+
+      - name: Deploy Elasticsearch
         run: |
-          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
           helm repo add elastic https://helm.elastic.co
           helm repo update
           helm install elasticsearch elastic/elasticsearch \
             --create-namespace \
             --namespace default \
             --values ./helm/values-elasticsearch.yaml
+
+      - name: Wait for Elasticsearch to be ready
+        run: |
+          echo "Waiting for Elasticsearch to be ready..."
+          for i in {1..30}; do
+            if kubectl get pods -n default -l app=elasticsearch-master -o jsonpath='{.items[0].status.containerStatuses[0].ready}' | grep -q 'true'; then
+              echo "Elasticsearch is running."
+              break
+            fi
+            echo "Elasticsearch is not ready. Retrying in 10 seconds..."
+            sleep 10
+          done
+          # If Elasticsearch is not ready after 5 minutes, exit with an error
+          if ! kubectl get pods -n default -l app=elasticsearch-master -o jsonpath='{.items[0].status.containerStatuses[0].ready}' | grep -q 'true'; then
+            echo "Error: Elasticsearch did not start successfully within the timeout period."
+            exit 1
+          fi
+
+      - name: Deploy Kibana
+        run: |
+          helm install kibana elastic/kibana \
+            --namespace default \
+            --values ./helm/values-kibana.yaml
+
+      - name: Deploy Logstash
+        run: |
+          helm install logstash elastic/logstash \
+            --namespace default \
+            --values ./helm/values-logstash.yaml
+
+      - name: Deploy Filebeat
+        run: |
+          helm install filebeat elastic/filebeat \
+            --namespace default \
+            --values ./helm/values-filebeat.yaml
+
+      - name: redeploy other ressources
+        continue-on-error: true
+        run: |
+          kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
