@@ -31,10 +31,10 @@ jobs:
           scw config set default-region="fr-par"
           scw config set default-zone="fr-par-1"
 
-          # Explicitly export SCW_DEFAULT_ZONE
           export SCW_DEFAULT_ZONE=$(scw config get default-zone)
-          echo "✅ Using SCW_DEFAULT_ZONE: $SCW_DEFAULT_ZONE"
           echo "SCW_DEFAULT_ZONE=$SCW_DEFAULT_ZONE" >> $GITHUB_ENV
+          export SCW_SECRET_KEY="${SCW_SECRET_KEY}"
+          echo "SCW_SECRET_KEY=${SCW_SECRET_KEY}" >> $GITHUB_ENV
 
       - name: Configure kubeconfig
         run: |
