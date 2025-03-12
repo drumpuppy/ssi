@@ -60,8 +60,12 @@ jobs:
       - name: Clean Up
         continue-on-error: true
         run: |
+          if helm list -n default | grep -q 'elasticsearch'; then
+            helm uninstall elasticsearch --namespace default
+          else
+            echo "Elastic not installed in the default namespace."
+          fi
           kubectl delete -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
-          helm uninstall elasticsearch
 
       - name: Fetch Scaleway Volumes
         run: |
