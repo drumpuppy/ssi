@@ -134,7 +134,8 @@ jobs:
 
             # Manually re-create the PVC in Kubernetes, binding it to the restored volume
             echo "🔄 Creating PVC $pvc in namespace $namespace and binding to restored volume..."
-            cat <<EOF | kubectl apply -n $namespace -f -
+            cat <<
+        EOF | kubectl apply -n $namespace -f -
               apiVersion: v1
               kind: PersistentVolume
               metadata:
@@ -149,9 +150,9 @@ jobs:
                 csi:
                   driver: csi.scaleway.com
                   volumeHandle: $restored_volume_id
-              EOF
+        EOF
 
-                          cat <<EOF | kubectl apply -n $namespace -f -
+            cat <<EOF | kubectl apply -n $namespace -f -
               apiVersion: v1
               kind: PersistentVolumeClaim
               metadata:
@@ -164,5 +165,5 @@ jobs:
                     storage: 30Gi
                 storageClassName: scaleway-block-storage
                 volumeName: restored-$pvc
-              EOF
+        EOF
           done
