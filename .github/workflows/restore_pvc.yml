@@ -205,6 +205,47 @@ jobs:
               sleep 10
             done
 
+            # **Step 6: Create the PersistentVolume**
+            echo "🔄 Creating PersistentVolume for restored PVC..."
+            echo '{
+              "apiVersion": "v1",
+              "kind": "PersistentVolume",
+              "metadata": {
+                "name": "restored-'$pvc'"
+              },
+              "spec": {
+                "capacity": { "storage": "30Gi" },
+                "accessModes": [ "ReadWriteOnce" ],
+                "persistentVolumeReclaimPolicy": "Retain",
+                "storageClassName": "sbs-default",
+                "csi": {
+                  "driver": "csi.scaleway.com",
+                  "volumeHandle": "'$restored_volume_id'"
+                }
+              }
+            }' | kubectl apply -f -
+
+            # **Step 7: Create the PersistentVolumeClaim**
+            echo "🔄 Creating PersistentVolumeClaim for restored PVC..."
+            echo '{
+              "apiVersion": "v1",
+              "kind": "PersistentVolumeClaim",
+              "metadata": {
+                "name": "'$pvc'",
+                "namespace": "'$namespace'"
+              },
+              "spec": {
+                "accessModes": [ "ReadWriteOnce" ],
+                "resources": {
+                  "requests": { "storage": "30Gi" }
+                },
+                "storageClassName": "sbs-default",
+                "volumeName": "restored-'$pvc'"
+              }
+            }' | kubectl apply -f -
+
+          done
+
 
       - name: Deploy Elasticsearch
         run: |
