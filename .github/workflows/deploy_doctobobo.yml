@@ -99,7 +99,8 @@ jobs:
 
 
       # Step 5: Deploy MySQL
-      - name: Deploy MySQL
+      - name: Deploy MySQL  
+        continue-on-error: true
         run: |
           kubectl apply -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
 
