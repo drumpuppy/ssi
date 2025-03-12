@@ -49,23 +49,37 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
-      - name: Create snapshot from PVCs
+      - name: Create snapshot from PVCs before deletion
         run: |
           PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+
+          # Ensure volumes.json exists and is not empty
+          if [ ! -s volumes.json ]; then
+            echo "⚠️ Warning: volumes.json is empty or missing. Skipping volume lookup..."
+            touch volumes.json
+          fi
+
           for entry in "${PVC_LIST[@]}"; do
             namespace=$(echo $entry | awk '{print $1}')
             pvc=$(echo $entry | awk '{print $2}')
+
+            # Check if the PVC exists before proceeding
             pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
             if [ -z "$pvc_name" ]; then
               echo "⚠️ PVC $pvc not found in namespace $namespace, skipping..."
               continue
             fi
-            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id' volumes.json)
+
+            # Extract volume ID from volumes.json
+            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[]? | select(.name | contains($pvc_name)) | .id' volumes.json)
             if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
               echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
               continue
             fi
+
+            # Create snapshot
             snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+            echo "✅ Creating snapshot for $pvc ($pvc_name)..."
             curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
                  -H "Content-Type: application/json" \
                  -d '{
