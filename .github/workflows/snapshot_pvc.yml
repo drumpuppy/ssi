@@ -35,6 +35,8 @@ jobs:
           echo "SCW_DEFAULT_ZONE=$SCW_DEFAULT_ZONE" >> $GITHUB_ENV
           export SCW_SECRET_KEY="${SCW_SECRET_KEY}"
           echo "SCW_SECRET_KEY=${SCW_SECRET_KEY}" >> $GITHUB_ENV
+          export SCW_DEFAULT_PROJECT_ID=$(scw config get default-project-id)
+          echo "SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID}" >> $GITHUB_ENV
 
       - name: Configure kubeconfig
         run: |
@@ -49,7 +51,8 @@ jobs:
 
       - name: Create snapshot from PVCs
         run: |
-          # Ensure SCW_DEFAULT_ZONE is available
+          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+
           echo "📌 Debug: Checking SCW_DEFAULT_ZONE: ${SCW_DEFAULT_ZONE}"
 
           if [[ -z "$SCW_DEFAULT_ZONE" ]]; then
@@ -57,7 +60,12 @@ jobs:
             exit 1
           fi
 
-          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+          echo "📌 Debug: Checking SCW_PROJECT_ID: ${SCW_PROJECT_ID}"
+
+          if [[ -z "$SCW_PROJECT_ID" ]]; then
+            echo "❌ SCW_PROJECT_ID is empty! Exiting..."
+            exit 1
+          fi
 
           echo "📌 Debug: Listing all Scaleway Block Storage volumes"
           curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
@@ -72,7 +80,6 @@ jobs:
 
             echo "🔍 Retrieving Scaleway volume ID for PVC $pvc in namespace $namespace..."
 
-            # Get the PVC name from Kubernetes
             pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
             echo "📌 Debug: Retrieved PVC Name: $pvc_name"
 
@@ -92,11 +99,13 @@ jobs:
 
             echo "✅ Creating snapshot for PVC $pvc ($pvc_name) in namespace $namespace..."
             snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+
             curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
                  -H "Content-Type: application/json" \
                  -d '{
                       "name": "'"$snapshot_name"'",
-                      "volume_id": "'"$volume_id"'"
+                      "volume_id": "'"$volume_id"'",
+                      "project_id": "'"$SCW_DEFAULT_PROJECT_ID"'"
                     }' \
                  "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/snapshots"
           done
