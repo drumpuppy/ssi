@@ -265,6 +265,7 @@ jobs:
       - name: Force Clear Elasticsearch Data
         run: |
           echo "🔄 Forcing Elasticsearch data reset..."
+          sleep 20
           kubectl exec -it elasticsearch-master-0 -- bash -c "rm -rf /usr/share/elasticsearch/data/*"
           kubectl delete pod elasticsearch-master-0
           echo "✅ Elasticsearch data cleared."
