@@ -1,4 +1,4 @@
-name: Restore PVC
+name: Deploy Helm Charts
 
 on:
   workflow_dispatch:
@@ -56,9 +56,7 @@ jobs:
           fi
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
-
-
-
+          
       - name: Fetch Scaleway Volumes
         run: |
           echo "Fetching Scaleway volumes..."
@@ -125,35 +123,34 @@ jobs:
             # Manually re-create the PVC in Kubernetes, binding it to the restored volume
             echo "🔄 Creating PVC $pvc in namespace $namespace and binding to restored volume..."
             cat <<EOF | kubectl apply -n $namespace -f -
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: restored-$pvc
-spec:
-  capacity:
-    storage: 30Gi  # Adjust size as needed
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: scaleway-block-storage
-  csi:
-    driver: csi.scaleway.com
-    volumeHandle: $restored_volume_id
-EOF
+            apiVersion: v1
+            kind: PersistentVolume
+            metadata:
+              name: restored-$pvc
+            spec:
+              capacity:
+                storage: 30Gi  # Adjust size as needed
+              accessModes:
+                - ReadWriteOnce
+              persistentVolumeReclaimPolicy: Retain
+              storageClassName: scaleway-block-storage
+              csi:
+                driver: csi.scaleway.com
+                volumeHandle: $restored_volume_id
+            EOF
 
             cat <<EOF | kubectl apply -n $namespace -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: $pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 30Gi
-  storageClassName: scaleway-block-storage
-  volumeName: restored-$pvc
-EOF
-
+            apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: $pvc
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 30Gi
+              storageClassName: scaleway-block-storage
+              volumeName: restored-$pvc
+            EOF
           done
