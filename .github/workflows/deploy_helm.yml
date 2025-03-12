@@ -160,16 +160,28 @@ jobs:
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
 
+      - name: Fetch Scaleway Volumes
+        run: |
+          echo "Fetching Scaleway volumes..."
+          curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+               "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | tee volumes.json
+          
+          if [ ! -s volumes.json ]; then
+            echo "❌ Error: volumes.json is empty or missing. Exiting..."
+            exit 1
+          fi
+
       - name: Restore PVCs from snapshots
         run: |
           PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
           for entry in "${PVC_LIST[@]}"; do
             namespace=$(echo $entry | awk '{print $1}')
             pvc=$(echo $entry | awk '{print $2}')
+            
             latest_snapshot_id=$(curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
                  "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/snapshots" | \
                  jq -r --arg pvc "$pvc" '.snapshots[] | select(.name | contains($pvc)) | .id' | sort | tail -n1)
-            
+
             if [ -z "$latest_snapshot_id" ] || [ "$latest_snapshot_id" == "null" ]; then
               echo "⚠️ No snapshot found for PVC $pvc, skipping..."
               continue
@@ -180,7 +192,7 @@ jobs:
                  -H "Content-Type: application/json" \
                  -d '{"name": "restored-$pvc", "from_snapshot_id": "'$latest_snapshot_id'", "project_id": "'$SCW_DEFAULT_PROJECT_ID'"}' \
                  "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | jq -r '.id')
-            
+
             if [ -z "$restored_volume_id" ] || [ "$restored_volume_id" == "null" ]; then
               echo "❌ Failed to restore PVC $pvc, skipping..."
               continue
