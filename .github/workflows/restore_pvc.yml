@@ -106,6 +106,7 @@ jobs:
           fi
           
           kubectl delete -k ./helm/wazuh-kubernetes/wazuh/
+          kubectl delete -f ./doctobobo/backend/mysql-deployment.yaml -n doctobobo
 
       - name: List and Delete All PVCs
         run: |
