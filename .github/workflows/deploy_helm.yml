@@ -39,6 +39,13 @@ jobs:
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
 
+          export SCW_DEFAULT_ZONE=$(scw config get default-zone)
+          echo "SCW_DEFAULT_ZONE=$SCW_DEFAULT_ZONE" >> $GITHUB_ENV
+          export SCW_SECRET_KEY="${SCW_SECRET_KEY}"
+          echo "SCW_SECRET_KEY=${SCW_SECRET_KEY}" >> $GITHUB_ENV
+          export SCW_DEFAULT_PROJECT_ID=$(scw config get default-project-id)
+          echo "SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID}" >> $GITHUB_ENV
+
       - name: Configure kubeconfig
         run: |
           mkdir -p ~/.kube
@@ -100,22 +107,32 @@ jobs:
           
           kubectl delete -k ./helm/wazuh-kubernetes/wazuh/
 
-      # - name: Create final snapshots for PVCs before deletion
-      #   run: |
-      #     for pvc in elasticsearch-pvc doctobobo-db-pvc; do
-      #       if kubectl get pvc $pvc >/dev/null 2>&1; then
-      #         volume_id=$(kubectl get pvc $pvc -o jsonpath='{.spec.volumeName}')
-      #         if [ -n "$volume_id" ]; then
-      #           echo "Creating snapshot for $pvc before deletion..."
-      #           snapshot_name="$pvc-final-$(date +%Y%m%d%H%M%S)"
-      #           scw instance snapshot create volume-id="$volume_id" name="$snapshot_name"
-      #         else
-      #           echo "PVC $pvc exists but has no associated volume!"
-      #         fi
-      #       else
-      #         echo "PVC $pvc not found, skipping snapshot creation."
-      #       fi
-      #     done
+      - name: Create snapshot from PVCs before deletion
+        run: |
+          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+          for entry in "${PVC_LIST[@]}"; do
+            namespace=$(echo $entry | awk '{print $1}')
+            pvc=$(echo $entry | awk '{print $2}')
+            pvc_name=$(kubectl get pvc $pvc -n $namespace -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
+            if [ -z "$pvc_name" ]; then
+              echo "⚠️ PVC $pvc not found in namespace $namespace, skipping..."
+              continue
+            fi
+            volume_id=$(jq -r --arg pvc_name "$pvc_name" '.volumes[] | select(.name | contains($pvc_name)) | .id' volumes.json)
+            if [ -z "$volume_id" ] || [ "$volume_id" == "null" ]; then
+              echo "⚠️ No Scaleway volume found for PVC $pvc ($pvc_name), skipping..."
+              continue
+            fi
+            snapshot_name="$pvc-$(date +%Y%m%d%H%M%S)"
+            curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                 -H "Content-Type: application/json" \
+                 -d '{
+                      "name": "'"$snapshot_name"'",
+                      "volume_id": "'"$volume_id"'",
+                      "project_id": "'"$SCW_DEFAULT_PROJECT_ID"'"
+                    }' \
+                 "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/snapshots"
+          done
 
       - name: List and Delete All PVCs
         run: |
@@ -143,18 +160,34 @@ jobs:
           kubectl delete secret kibana-kibana-es-token -n default || echo "Secret already deleted or not found"
           kubectl delete secret sh.helm.release.v1.kibana.v1 -n default || echo "Helm release secret already deleted or not found"
 
-      # - name: Restore PVCs from snapshots (if available)
-      #   run: |
-      #     for pvc in elasticsearch-pvc doctobobo-db-pvc; do
-      #       snapshot_id=$(scw instance snapshot list name=$pvc --order-by=created_at_desc --output json | jq -r '.[0].id')
-      #       if [ -n "$snapshot_id" ]; then
-      #         echo "Restoring PVC $pvc from snapshot $snapshot_id..."
-      #         volume_id=$(scw instance volume create name="$pvc-restored" from-snapshot="$snapshot_id" --output json | jq -r '.id')
-      #         kubectl patch pvc $pvc --type='merge' -p '{"spec": {"volumeName": "'$volume_id'"}}'
-      #       else
-      #         echo "No snapshot found for $pvc, creating a fresh PVC..."
-      #       fi
-      #     done
+      - name: Restore PVCs from snapshots
+        run: |
+          PVC_LIST=("default elasticsearch-master-elasticsearch-master-0" "doctobobo mysql-pvc")
+          for entry in "${PVC_LIST[@]}"; do
+            namespace=$(echo $entry | awk '{print $1}')
+            pvc=$(echo $entry | awk '{print $2}')
+            latest_snapshot_id=$(curl -s -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                 "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/snapshots" | \
+                 jq -r --arg pvc "$pvc" '.snapshots[] | select(.name | contains($pvc)) | .id' | sort | tail -n1)
+            
+            if [ -z "$latest_snapshot_id" ] || [ "$latest_snapshot_id" == "null" ]; then
+              echo "⚠️ No snapshot found for PVC $pvc, skipping..."
+              continue
+            fi
+            
+            echo "✅ Restoring PVC $pvc from snapshot $latest_snapshot_id..."
+            restored_volume_id=$(curl -X POST -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                 -H "Content-Type: application/json" \
+                 -d '{"name": "restored-$pvc", "from_snapshot_id": "'$latest_snapshot_id'", "project_id": "'$SCW_DEFAULT_PROJECT_ID'"}' \
+                 "https://api.scaleway.com/block/v1alpha1/zones/${SCW_DEFAULT_ZONE}/volumes" | jq -r '.id')
+            
+            if [ -z "$restored_volume_id" ] || [ "$restored_volume_id" == "null" ]; then
+              echo "❌ Failed to restore PVC $pvc, skipping..."
+              continue
+            fi
+            
+            echo "✅ PVC $pvc restored with volume ID $restored_volume_id."
+          done
 
 
       - name: Deploy Elasticsearch
