@@ -1,4 +1,4 @@
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
   name: doctobobo-gateway
@@ -7,9 +7,21 @@ spec:
   selector:
     istio: ingressgateway
   servers:
-    - port:
-        number: 80
-        name: http
-        protocol: HTTP
-      hosts:
-        - "doctobobo2.my-soc.fr"
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - doctobobo2.my-soc.fr
+    # Rediriger HTTP vers HTTPS
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - doctobobo2.my-soc.fr
+    tls:
+      mode: SIMPLE
+      credentialName: doctobobo-cert
