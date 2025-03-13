@@ -117,27 +117,36 @@ jobs:
       - name: Deploy Istio VirtualService for Doctobobo
         run: kubectl apply -f helm/istio/doctobobo-virtualservice.yaml
 
+
+
       - name: Get Load Balancer IPs (NGINX & Istio)
         id: get-lb-ips
         run: |
-          nginx_lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
+          nginx_lb_ip=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      
+          # Si l'IP est un nom DNS, extraire l'adresse IP réelle
+          if [[ "$nginx_lb_ip" =~ [a-zA-Z] ]]; then
+            nginx_lb_ip=$(dig +short "$nginx_lb_ip" | tail -n1)
+          fi
+      
           istio_lb_ip=$(kubectl get svc istio-ingress -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-
+      
           if [[ -z "$nginx_lb_ip" || "$nginx_lb_ip" == "null" ]]; then
             echo "Error: NGINX Load Balancer IP not found."
             exit 1
           fi
-
+      
           if [[ -z "$istio_lb_ip" || "$istio_lb_ip" == "null" ]]; then
             echo "Error: Istio Load Balancer IP not found."
             exit 1
           fi
-
+      
           echo "NGINX LB IP: $nginx_lb_ip"
           echo "Istio LB IP: $istio_lb_ip"
-
+      
           echo "nginx_lb_ip=$nginx_lb_ip" >> $GITHUB_ENV
           echo "istio_lb_ip=$istio_lb_ip" >> $GITHUB_ENV
+
 
       - name: Install OVH Python SDK
         run: pip install ovh
