@@ -7,14 +7,14 @@ metadata:
     cert-manager.io/acme-challenge-type: http01
     cert-manager.io/issuer: letsencrypt-prod-istio
     ingress.kubernetes.io/rewrite-target: /
-    networking.k8s.io/ingress.class: istio
+    networking.k8s.io/ingress.class: istio  # S'assurer que c'est bien Istio
 spec:
   rules:
   - host: "doctobobo2.my-soc.fr"
     http:
       paths:
       - path: "/.well-known/acme-challenge/"
-        pathType: Exact
+        pathType: ImplementationSpecific  # Utiliser ImplementationSpecific ici pour Istio
         backend:
           service:
             name: cm-acme-http-solver
