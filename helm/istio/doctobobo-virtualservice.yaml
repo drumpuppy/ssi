@@ -14,14 +14,6 @@ spec:
         prefix: /.well-known/acme-challenge/
     route:
     - destination:
-        host: cert-manager
+        host: cm-acme-http-solver
         port:
-          number: 80
-  - match:
-    - uri:
-        exact: /
-    route:
-    - destination:
-        host: doctobobo-backend
-        port:
-          number: 8080
+          number: 8089
