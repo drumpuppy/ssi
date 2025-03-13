@@ -13,8 +13,8 @@ spec:
   - host: "doctobobo2.my-soc.fr"
     http:
       paths:
-      - path: "/.well-known/acme-challenge/*"
-        pathType: Prefix
+      - path: "/.well-known/acme-challenge/"
+        pathType: Exact
         backend:
           service:
             name: cm-acme-http-solver
