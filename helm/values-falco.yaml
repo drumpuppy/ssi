@@ -1002,9 +1002,9 @@ falco:
   # message. Furthermore, the program will be re-spawned if Falco receives
   # the SIGUSR1 signal.
   program_output:
-    enabled: false
+    enabled: true
     keep_alive: false
-    program: "jq '{text: .output}' | curl -d @- -X POST https://hooks.slack.com/services/XXX"
+    program: "jq '{text: .output}' | curl -d @- -X POST https://hooks.slack.com/services/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"
 
   # [Stable] `grpc_output`
   #
