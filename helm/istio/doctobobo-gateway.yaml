@@ -1,15 +1,15 @@
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: doctobobo-gateway
-  namespace: doctobobo
+  namespace: istio-system
 spec:
   selector:
     istio: ingressgateway
   servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "doctobobo2.my-soc.fr"
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "doctobobo2.my-soc.fr"
