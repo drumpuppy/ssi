@@ -205,10 +205,11 @@ jobs:
           
           # Appliquer le ClusterIssuer
           kubectl apply -f ./helm/istio/clusterIssuer.yaml
-          
+
           # Appliquer le certificat pour Doctobobo
+          kubectl delete certificate doctobobo-cert -n istio-system
           kubectl apply -f ./helm/istio/doctobobo-cert.yaml -n istio-system
-          
+
           echo "Attente de la création du certificat..."
           sleep 10
           kubectl wait --for=condition=Ready certificate/doctobobo-cert -n istio-system --timeout=120s
