@@ -7,7 +7,7 @@ metadata:
     cert-manager.io/acme-challenge-type: http01
     cert-manager.io/issuer: letsencrypt-prod-istio
     ingress.kubernetes.io/rewrite-target: /
-    networking.k8s.io/ingress.class: istio  # S'assurer que c'est bien Istio
+    networking.k8s.io/ingress.class: istio  # Changer de nginx à istio ici
 spec:
   rules:
   - host: "doctobobo2.my-soc.fr"
