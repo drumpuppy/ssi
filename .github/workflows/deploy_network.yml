@@ -121,7 +121,7 @@ jobs:
         id: get-lb-ips
         run: |
           nginx_lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
-          istio_lb_ip=$(kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          istio_lb_ip=$(kubectl get svc istio-ingress -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
           if [[ -z "$nginx_lb_ip" || "$nginx_lb_ip" == "null" ]]; then
             echo "Error: NGINX Load Balancer IP not found."
