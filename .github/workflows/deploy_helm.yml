@@ -200,21 +200,22 @@ jobs:
 
       - name: Apply Doctobobo Gateway and VirtualService
         run: |
+          # Appliquer le Gateway et le VirtualService
           kubectl apply -f ./helm/istio/doctobobo-gateway.yaml -n istio-system
           kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml -n istio-system
-          
+      
           # Appliquer le ClusterIssuer
           kubectl apply -f ./helm/istio/clusterIssuer.yaml
-
-          # Appliquer le certificat pour Doctobobo
-          kubectl delete certificate doctobobo-cert -n istio-system
+      
+          # Supprimer et réappliquer le certificat pour Doctobobo
+          kubectl delete certificate doctobobo-cert -n istio-system || true  # Ignore si le certificat n'existe pas
           kubectl apply -f ./helm/istio/doctobobo-cert.yaml -n istio-system
-
-          echo "Attente de la création du certificat..."
-          sleep 10
-          kubectl wait --for=condition=Ready certificate/doctobobo-cert -n istio-system --timeout=120s
-          
+      
+          # Appliquer le fichier Ingress pour le challenge ACME
+          kubectl apply -f ./helm/istio/doctobobo-acme-ingress.yaml
+      
           echo "Istio et les certificats sont en place !"
+
 
       - name: Deploy Wazuh
         run: |
