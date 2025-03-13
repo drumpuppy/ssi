@@ -122,25 +122,30 @@ jobs:
       - name: Get Load Balancer IPs (NGINX & Istio)
         id: get-lb-ips
         run: |
-          nginx_lb_ip=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          # Récupération de l'adresse IP du Load Balancer NGINX
+          nginx_lb_hostname=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
       
-          # Si l'IP est un nom DNS, extraire l'adresse IP réelle
-          if [[ "$nginx_lb_ip" =~ [a-zA-Z] ]]; then
-            nginx_lb_ip=$(dig +short "$nginx_lb_ip" | tail -n1)
+          if [[ -z "$nginx_lb_hostname" || "$nginx_lb_hostname" == "null" ]]; then
+            echo "Error: NGINX Load Balancer Hostname not found."
+            exit 1
           fi
       
-          istio_lb_ip=$(kubectl get svc istio-ingress -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          nginx_lb_ip=$(dig +short "$nginx_lb_hostname" | tail -n1)
       
           if [[ -z "$nginx_lb_ip" || "$nginx_lb_ip" == "null" ]]; then
             echo "Error: NGINX Load Balancer IP not found."
             exit 1
           fi
       
+          # Récupération de l'adresse IP du Load Balancer Istio
+          istio_lb_ip=$(kubectl get svc istio-ingress -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      
           if [[ -z "$istio_lb_ip" || "$istio_lb_ip" == "null" ]]; then
             echo "Error: Istio Load Balancer IP not found."
             exit 1
           fi
-      
+
+          echo "NGINX LB Hostname: $nginx_lb_hostname"
           echo "NGINX LB IP: $nginx_lb_ip"
           echo "Istio LB IP: $istio_lb_ip"
       
