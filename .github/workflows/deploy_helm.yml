@@ -198,6 +198,11 @@ jobs:
           helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
           helm upgrade --install istio-ingress istio/gateway -n istio-system
 
+      - name: Apply Doctobobo Gateway and VirtualService
+        run: |
+          kubectl apply -f ./helm/istio/doctobobo-gateway.yaml
+          kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml
+
       - name: Deploy Wazuh
         run: |
           kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
