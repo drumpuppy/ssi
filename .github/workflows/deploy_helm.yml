@@ -200,8 +200,8 @@ jobs:
 
       - name: Apply Doctobobo Gateway and VirtualService
         run: |
-          kubectl apply -f ./helm/istio/doctobobo-gateway.yaml
-          kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml
+          kubectl apply -f ./helm/istio/doctobobo-gateway.yaml -n istio-system
+          kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml -n istio-system
 
       - name: Deploy Wazuh
         run: |
