@@ -5,14 +5,13 @@ metadata:
   namespace: istio-system
   annotations:
     cert-manager.io/acme-challenge-type: http01
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
   - host: "doctobobo2.my-soc.fr"
     http:
       paths:
       - path: "/.well-known/acme-challenge/*"
-        pathType: Prefix
+        pathType: ImplementationSpecific   # Utiliser ImplementationSpecific pour Istio
         backend:
           service:
             name: cm-acme-http-solver
