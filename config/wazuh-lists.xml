@@ -1,0 +1,15 @@
+<list name="malicious_ip_list">
+  <item>192.168.1.100</item>
+  <item>203.0.113.50</item>
+  <item>185.220.101.45</item>
+</list>
+
+<list name="trusted_users">
+  <item>admin</item>
+  <item>monitoring_user</item>
+</list>
+
+<list name="restricted_commands">
+  <item>/bin/nc</item>
+  <item>/usr/bin/nmap</item>
+</list>

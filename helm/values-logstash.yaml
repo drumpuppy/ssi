@@ -16,7 +16,7 @@ logstashConfig:
 # Allows you to add any pipeline files in /usr/share/logstash/pipeline/
 ### ***warn*** there is a hardcoded logstash.conf in the image, override it first
 logstashPipeline:
-  falco.conf: |
+  wazuh-logstash.conf: |
     input {
       beats {
         port => 5044
@@ -24,106 +24,15 @@ logstashPipeline:
     }
 
     filter {
-      if [message] {
-        json {
-          source => "message"
-          target => "falco_data"
-          tag_on_failure => ["_jsonparsefailure"]
-        }
-        if [source] == "falco" {
-          mutate { add_field => { "index_type" => "falco-alerts" } }
-        } else {
-          mutate { add_field => { "index_type" => "generic-logs" } }
-        }
-      } else {
-        mutate { add_field => { "json_error" => "missing message field" } }
+      json {
+        source => "message"
       }
     }
 
     output {
       elasticsearch {
-        hosts => "https://elasticsearch-master:9200"
-        index => "falco-alerts-%{+YYYY.MM.dd}"
-        ssl => true
-        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-        user => '${ELASTICSEARCH_USERNAME}'
-        password => '${ELASTICSEARCH_PASSWORD}'
-        ecs_compatibility => "v8"
-      }
-    }
-
-  wazuh.conf: |
-    filter {
-      if [message] {
-        json {
-          source => "message"
-          target => "wazuh_data"
-          tag_on_failure => ["_jsonparsefailure"]
-        }
-        if [source] == "wazuh" {
-          mutate { add_field => { "index_type" => "wazuh-alerts" } }
-        } else {
-          mutate { add_field => { "index_type" => "generic-logs" } }
-        }
-      } else {
-        mutate { add_field => { "json_error" => "missing message field" } }
-      }
-    }
-
-    output {
-      elasticsearch {
-        hosts => "https://elasticsearch-master:9200"
+        hosts => ["https://elasticsearch-master:9200"]
         index => "wazuh-alerts-%{+YYYY.MM.dd}"
-        ssl => true
-        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-        user => '${ELASTICSEARCH_USERNAME}'
-        password => '${ELASTICSEARCH_PASSWORD}'
-        ecs_compatibility => "v8"
-      }
-    }
-
-  istio.conf: |
-    filter {
-      if [message] {
-        json {
-          source => "message"
-          target => "istio_data"
-          tag_on_failure => ["_jsonparsefailure"]
-        }
-        if [source] == "istio" {
-          mutate { add_field => { "index_type" => "istio-logs" } }
-        } else {
-          mutate { add_field => { "index_type" => "generic-logs" } }
-        }
-      } else {
-        mutate { add_field => { "json_error" => "missing message field" } }
-      }
-    }
-
-    output {
-      elasticsearch {
-        hosts => "https://elasticsearch-master:9200"
-        index => "istio-logs-%{+YYYY.MM.dd}"
-        ssl => true
-        cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
-        user => '${ELASTICSEARCH_USERNAME}'
-        password => '${ELASTICSEARCH_PASSWORD}'
-        ecs_compatibility => "v8"
-      }
-    }
-
-    
-  generic-logs.conf: |
-    filter {
-      if ![source] {
-        mutate { add_field => { "source" => "generic" } }
-      }
-    }
-
-    output {
-      elasticsearch {
-        hosts => "https://elasticsearch-master:9200"
-        index => "generic-logs-%{+YYYY.MM.dd}"
         ssl => true
         cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
         user => '${ELASTICSEARCH_USERNAME}'

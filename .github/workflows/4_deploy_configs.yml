@@ -94,3 +94,31 @@ jobs:
           done
           
           echo "✅ Kibana Data Views successfully imported!"
+
+      - name: Fetch Wazuh Password & Deploy Configs
+        run: |
+          export KUBECONFIG=~/.kube/config
+          WAZUH_PASSWORD=$(kubectl get secret wazuh-secret -n wazuh -o jsonpath='{.data.password}' | base64 -d)
+          
+          # 📌 Trouver dynamiquement le pod de Wazuh Manager
+          WAZUH_POD=$(kubectl get pods -n wazuh -l app=wazuh-manager -o jsonpath='{.items[0].metadata.name}')
+          
+          echo "Uploading configuration files to Wazuh pod: $WAZUH_POD"
+          
+          # 📌 Définir les fichiers à charger (dans ./config)
+          FILES=(
+            config/wazuh-rules.xml
+            config/wazuh-decoders.xml
+            config/wazuh-lists.xml
+          )
+          
+          for FILE in "${FILES[@]}"; do
+            FILE_NAME=$(basename "$FILE")
+            echo "Uploading $FILE_NAME..."
+            kubectl cp "./$FILE" "$WAZUH_POD:/var/ossec/etc/$FILE_NAME" -n wazuh
+            
+            echo "Restarting Wazuh Manager to apply changes..."
+            kubectl exec -it "$WAZUH_POD" -n wazuh -- /var/ossec/bin/ossec-control restart
+          done
+          
+          echo "✅ Wazuh configuration successfully updated!"
