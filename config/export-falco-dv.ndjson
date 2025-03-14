@@ -1,0 +1,2 @@
+{"attributes":{"fieldAttrs":"{}","fieldFormatMap":"{}","fields":"[]","name":"falco","runtimeFieldMap":"{}","sourceFilters":"[]","timeFieldName":"@timestamp","title":"filebeat*","typeMeta":"{}"},"coreMigrationVersion":"8.5.1","id":"2164f53c-c5d6-4ab6-ba57-d3ee19fa09ad","migrationVersion":{"index-pattern":"8.0.0"},"references":[],"type":"index-pattern","updated_at":"2025-03-14T17:21:51.200Z","version":"WzUzNywxXQ=="}
+{"excludedObjects":[],"excludedObjectsCount":0,"exportedCount":1,"missingRefCount":0,"missingReferences":[]}

@@ -61,6 +61,36 @@ jobs:
       - name: Fetch Kibana Password & Deploy Data Views
         run: |
           export KUBECONFIG=~/.kube/config
-          kubectl config current-context
-          chmod +x ./config/create-kibana-dataviews.sh
-          ./config/create-kibana-dataviews.sh
+          
+          # Get Kibana password
+          KIBANA_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
+          
+          # Get Kibana pod name dynamically
+          KIBANA_POD=$(kubectl get pods -n default -l app=kibana -o jsonpath='{.items[0].metadata.name}')
+          
+          echo "Uploading data view configuration files to Kibana pod: $KIBANA_POD"
+          
+          # Define files to upload from the ./config folder
+          FILES=(
+            config/export-istio-dv.ndjson
+            config/export-istio-search.ndjson
+            config/export-falco-dv.ndjson
+            config/export-falco-search.ndjson
+            config/export-wazuh-dv.ndjson
+            config/export-wazuh-search.ndjson
+          )
+          
+          for FILE in "${FILES[@]}"; do
+            FILE_NAME=$(basename "$FILE")
+            echo "Uploading $FILE_NAME..."
+            kubectl cp "./$FILE" "$KIBANA_POD:/usr/share/kibana/config/$FILE_NAME" -n default
+            
+            echo "Importing $FILE_NAME into Kibana..."
+            kubectl exec -it "$KIBANA_POD" -n default -- \
+              curl -X POST "http://localhost:5601/api/saved_objects/_import" \
+              -H "kbn-xsrf: true" \
+              -F "file=@/usr/share/kibana/config/$FILE_NAME" \
+              -u "elastic:$KIBANA_PASSWORD"
+          done
+          
+          echo "✅ Kibana Data Views successfully imported!"

@@ -1,0 +1,2 @@
+{"attributes":{"fieldAttrs":"{}","fieldFormatMap":"{}","fields":"[]","name":"wazuh","runtimeFieldMap":"{}","sourceFilters":"[]","timeFieldName":"@timestamp","title":"filebeat*","typeMeta":"{}"},"coreMigrationVersion":"8.5.1","id":"b1107675-f061-40f0-846a-d58627b02ecd","migrationVersion":{"index-pattern":"8.0.0"},"references":[],"type":"index-pattern","updated_at":"2025-03-14T16:23:49.549Z","version":"WzIzOCwxXQ=="}
+{"excludedObjects":[],"excludedObjectsCount":0,"exportedCount":1,"missingRefCount":0,"missingReferences":[]}

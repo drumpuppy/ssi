@@ -1,0 +1,2 @@
+{"attributes":{"fieldAttrs":"{}","fieldFormatMap":"{}","fields":"[]","name":"istio","runtimeFieldMap":"{}","sourceFilters":"[]","timeFieldName":"@timestamp","title":"filebeat*","typeMeta":"{}"},"coreMigrationVersion":"8.5.1","id":"7ee6db1e-09c8-4c37-aa62-64af0a2d4927","migrationVersion":{"index-pattern":"8.0.0"},"references":[],"type":"index-pattern","updated_at":"2025-03-14T17:23:51.996Z","version":"WzU4OCwxXQ=="}
+{"excludedObjects":[],"excludedObjectsCount":0,"exportedCount":1,"missingRefCount":0,"missingReferences":[]}
