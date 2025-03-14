@@ -39,6 +39,11 @@ daemonset:
         - type: container
           paths:
             - /var/log/containers/*.log
+          multiline:
+            pattern: '^\s+(at|caused by)'  # Match Java stack traces
+            negate: false
+            match: after
+
           processors:
             - add_kubernetes_metadata:
                 host: ${NODE_NAME}
@@ -46,19 +51,7 @@ daemonset:
                   - logs_path:
                       logs_path: "/var/log/containers/"
 
-            # Multiline handling: Combine stack traces into a single event
-            - multiline:
-                pattern: '^\s+(at|caused by)'  # Match Java stack traces
-                negate: false
-                match: after
-
-            - multiline:
-                pattern: '^\s'  # Match indented lines (generic logs)
-                negate: false
-                match: after
-
       processors:
-        # Decode JSON logs if applicable
         - decode_json_fields:
             fields: ["message"]
             process_array: false
@@ -66,36 +59,35 @@ daemonset:
             target: ""
             overwrite_keys: true
 
-        # Assign sources to logs based on container name or Kubernetes metadata
         - add_fields:
-            when:
-              contains:
-                kubernetes.container.name: "falco"
+            when.contains:
+              kubernetes.container.name: "falco"
             fields:
               source: "falco"
 
         - add_fields:
-            when:
-              contains:
-                kubernetes.container.name: "wazuh"
+            when.contains:
+              kubernetes.container.name: "wazuh"
             fields:
               source: "wazuh"
 
         - add_fields:
-            when:
-              contains:
-                kubernetes.container.name: "istio"
+            when.contains:
+              kubernetes.container.name: "istio"
             fields:
               source: "istio"
 
         - add_fields:
-            when:
-              not:
-                has_fields: ["source"]
+            when.not.contains:
+              source: ""
             fields:
               source: "generic"
 
-      # Elasticsearch Output (Replace Logstash)
+      setup.template.enabled: true
+      setup.template.name: "filebeat"
+      setup.template.pattern: "filebeat-*"
+      setup.ilm.enabled: false
+
       output.elasticsearch:
         hosts: ["https://elasticsearch-master:9200"]
         username: "${ELASTICSEARCH_USERNAME}"
@@ -103,13 +95,23 @@ daemonset:
         protocol: "https"
         ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
 
-        # Dynamically assign indices based on the source field
-        index: "filebeat-%{[source]}-%{+yyyy.MM.dd}"
+        # Correct index assignment
+        indices:
+          - index: "filebeat-falco-%{+yyyy.MM.dd}"
+            when.contains:
+              fields.source: "falco"
 
-      setup.template.enabled: true
-      setup.template.name: "filebeat-%{[source]}"
-      setup.template.pattern: "filebeat-%{[source]}-*"
-      setup.ilm.enabled: false
+          - index: "filebeat-wazuh-%{+yyyy.MM.dd}"
+            when.contains:
+              fields.source: "wazuh"
+
+          - index: "filebeat-istio-%{+yyyy.MM.dd}"
+            when.contains:
+              fields.source: "istio"
+
+          - index: "filebeat-generic-%{+yyyy.MM.dd}"
+            when.not.contains:
+              fields.source: ""
 
 
 
