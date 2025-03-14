@@ -67,17 +67,30 @@ healthCheckPath: "/app/kibana"
 # such as kibana.yml
 kibanaConfig:
   kibana.yml: |
+    # ✅ Enable Security & Authentication
     xpack.security.enabled: true
     xpack.security.encryptionKey: "a_secure_random_string_of_32+_characters"
     xpack.encryptedSavedObjects.encryptionKey: "a_secure_random_string_of_32+_characters"
+
+    # ✅ Enable Monitoring & Reporting
     xpack.monitoring.enabled: true
     xpack.reporting.enabled: true
     xpack.reporting.roles.enabled: false
+
+    # ✅ Enable Actions & Alerts
     xpack.actions.allowedHosts: ['*']
-    xpack.alerting.rules.settings: 
-      execution: 
-        timeout: "5m"
+    
+    # ✅ Fix for xpack.alerting.rules.settings (Use correct format)
+    xpack.alerting:
+      enabled: true
+      invalidateApiKeysTask:
+        enabled: true
+      healthCheck:
+        interval: "5m"
+
+    # ✅ Saved Objects Import Size Limit (Increase if needed)
     xpack.savedObjects.maxImportPayloadBytes: 10485760
+
 
 # If Pod Security Policy in use it may be required to specify security context as well as service account
 
