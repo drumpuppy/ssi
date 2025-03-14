@@ -165,11 +165,11 @@ jobs:
             --namespace default \
             --values ./helm/values-kibana.yaml
 
-      - name: Deploy Logstash
-        run: |
-          helm install logstash elastic/logstash \
-            --namespace default \
-            --values ./helm/values-logstash.yaml
+      # - name: Deploy Logstash
+      #   run: |
+      #     helm install logstash elastic/logstash \
+      #       --namespace default \
+      #       --values ./helm/values-logstash.yaml
 
       - name: Deploy Filebeat
         run: |

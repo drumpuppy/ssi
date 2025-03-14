@@ -36,7 +36,6 @@ daemonset:
   filebeatConfig:
     filebeat.yml: |
       filebeat.inputs:
-        # Logs des containers Kubernetes
         - type: container
           paths:
             - /var/log/containers/*.log
@@ -46,49 +45,71 @@ daemonset:
                 matchers:
                   - logs_path:
                       logs_path: "/var/log/containers/"
-          fields:
-            source: kubernetes
-          fields_under_root: true
 
-        # Logs système (syslog, auth.log, messages)
-        - type: log
-          paths:
-            - /var/log/syslog
-            - /var/log/messages
-            - /var/log/auth.log
-          fields:
-            source: system
-          fields_under_root: true
+            # Multiline handling: Combine stack traces into a single event
+            - multiline:
+                pattern: '^\s+(at|caused by)'  # Match Java stack traces
+                negate: false
+                match: after
 
-        # Logs Falco
-        - type: log
-          paths:
-            - /var/log/falco/falco.log
-          fields:
-            source: falco
-          fields_under_root: true
-          processors:
-            - decode_json_fields:
-                fields: ["message"]
-                target: "falco_data"
-                overwrite_keys: true
+            - multiline:
+                pattern: '^\s'  # Match indented lines (generic logs)
+                negate: false
+                match: after
 
-        # Logs Wazuh
-        - type: log
-          paths:
-            - /var/ossec/logs/alerts/alerts.json
-          fields:
-            source: wazuh
-          fields_under_root: true
-          processors:
-            - decode_json_fields:
-                fields: ["message"]
-                target: "wazuh_data"
-                overwrite_keys: true
+      processors:
+        # Decode JSON logs if applicable
+        - decode_json_fields:
+            fields: ["message"]
+            process_array: false
+            max_depth: 5
+            target: ""
+            overwrite_keys: true
 
-      output.logstash:
-        hosts: ["logstash-logstash:5044"]  # ✅ Logstash écoute tout sur 5044
-        loadbalance: true
+        # Assign sources to logs based on container name or Kubernetes metadata
+        - add_fields:
+            when:
+              contains:
+                kubernetes.container.name: "falco"
+            fields:
+              source: "falco"
+
+        - add_fields:
+            when:
+              contains:
+                kubernetes.container.name: "wazuh"
+            fields:
+              source: "wazuh"
+
+        - add_fields:
+            when:
+              contains:
+                kubernetes.container.name: "istio"
+            fields:
+              source: "istio"
+
+        - add_fields:
+            when:
+              not:
+                has_fields: ["source"]
+            fields:
+              source: "generic"
+
+      # Elasticsearch Output (Replace Logstash)
+      output.elasticsearch:
+        hosts: ["https://elasticsearch-master:9200"]
+        username: "${ELASTICSEARCH_USERNAME}"
+        password: "${ELASTICSEARCH_PASSWORD}"
+        protocol: "https"
+        ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
+
+        # Dynamically assign indices based on the source field
+        index: "filebeat-%{[source]}-%{+yyyy.MM.dd}"
+
+      setup.template.enabled: true
+      setup.template.name: "filebeat-%{[source]}"
+      setup.template.pattern: "filebeat-%{[source]}-*"
+      setup.ilm.enabled: false
 
 
 
