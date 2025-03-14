@@ -671,11 +671,11 @@ falco:
   #
   # Only enable two rules:
   #
-  # rules:
-  #   - disable:
-  #       rule: "*"
-  #   - enable:
-  #       rule: Netcat Remote Code Execution in Container
+  rules:
+    - disable:
+        rule: "*"
+    - enable:
+        rule: "*"
   #   - enable:
   #       rule: Delete or rename shell history
   #
