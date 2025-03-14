@@ -672,6 +672,8 @@ falco:
   # Only enable two rules:
   #
   rules:
+    - disable:
+        rule: "*"
     - enable:
         rule: "*"
   #   - enable:
@@ -1129,7 +1131,7 @@ falco:
   # verbosity of Falco's operational logs. Only logs of a certain severity level
   # or higher will be emitted. Supported levels: "emergency", "alert", "critical",
   # "error", "warning", "notice", "info", "debug".
-  log_level: warning
+  log_level: debug
 
   # [Stable] `libs_logger`
   #
