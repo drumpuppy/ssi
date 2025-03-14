@@ -107,8 +107,15 @@ jobs:
             echo "⚠️ Wazuh secret not found: $SECRET_NAME"
             exit 1
           fi
-          
-          # ✅ Vérifier que le pod Wazuh Manager existe avant de continuer
+
+          # ✅ Trouver dynamiquement le StatefulSet Wazuh
+          WAZUH_STATEFULSET=$(kubectl get statefulsets -n wazuh -o jsonpath='{.items[0].metadata.name}')
+          if [[ -z "$WAZUH_STATEFULSET" ]]; then
+            echo "⚠️ No StatefulSet found for Wazuh. Aborting."
+            exit 1
+          fi
+
+          # ✅ Trouver le pod Wazuh Manager
           WAZUH_POD=$(kubectl get pods -n wazuh -l app=wazuh-manager -o jsonpath='{.items[0].metadata.name}' --ignore-not-found)
           if [[ -z "$WAZUH_POD" ]]; then
             echo "⚠️ Wazuh Manager pod not found. Aborting."
@@ -123,14 +130,14 @@ jobs:
             config/wazuh-decoders.xml
             config/wazuh-lists.xml
           )
-          
+
           for FILE in "${FILES[@]}"; do
             FILE_NAME=$(basename "$FILE")
             echo "Uploading $FILE_NAME..."
             kubectl cp "./$FILE" "$WAZUH_POD:/var/ossec/etc/$FILE_NAME" -n wazuh
           done
-          
+
           echo "Restarting Wazuh Manager to apply changes..."
-          kubectl rollout restart statefulset wazuh-manager -n wazuh
+          kubectl rollout restart statefulset "$WAZUH_STATEFULSET" -n wazuh
 
           echo "✅ Wazuh configuration successfully updated!"
