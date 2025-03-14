@@ -4,7 +4,7 @@
 KIBANA_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 --decode)
 
 # Kibana API Credentials
-KIBANA_URL="https://kibana-kibana:5601"
+KIBANA_URL="http://$(kubectl get svc kibana-kibana -n default -o jsonpath='{.spec.clusterIP}'):5601"
 KIBANA_USER="elastic"
 
 create_data_view() {
