@@ -61,5 +61,6 @@ jobs:
       - name: Fetch Kibana Password & Deploy Data Views
         run: |
           export KUBECONFIG=~/.kube/config
+          kubectl config current-context
           chmod +x ./config/create-kibana-dataviews.sh
           ./config/create-kibana-dataviews.sh
