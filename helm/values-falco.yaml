@@ -868,7 +868,7 @@ falco:
   # an "output" property like "Opened process %proc.name" the "message" field will
   # only contain "Opened process bash" whereas the "output" field will contain more
   # information.
-  json_include_message_property: false
+  json_include_message_property: true
 
   # [Stable] `buffered_outputs`
   #
@@ -1004,7 +1004,7 @@ falco:
   program_output:
     enabled: true
     keep_alive: false
-    program: "jq '{text: .output}' | curl -d @- -X POST https://hooks.slack.com/services/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"
+    program: "/bin/sh -c 'tee >(jq \"{text: .output}\" | curl -d @- -X POST https://hooks.slack.com/services/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) | nc -u -w0 logstash.default.svc.cluster.local 5044'"
 
   # [Stable] `grpc_output`
   #

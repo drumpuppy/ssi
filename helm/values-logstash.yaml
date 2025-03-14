@@ -18,21 +18,22 @@ logstashConfig:
 logstashPipeline:
   wazuh-logstash.conf: |
     input {
-      beats {
+      udp {
         port => 5044
+        codec => json
       }
     }
 
     filter {
-      json {
-        source => "message"
+      if [priority] {
+        mutate { add_field => { "alert.source" => "falco" } }
       }
     }
 
     output {
       elasticsearch {
         hosts => ["https://elasticsearch-master:9200"]
-        index => "wazuh-alerts-%{+YYYY.MM.dd}"
+        index => "falco-alerts-%{+YYYY.MM.dd}"
         ssl => true
         cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
         user => '${ELASTICSEARCH_USERNAME}'
