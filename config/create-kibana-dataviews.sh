@@ -37,7 +37,7 @@ create_data_view() {
           }
         }
       }
-    }"
+    }")
     if [[ "$RESPONSE" != "200" && "$RESPONSE" != "201" ]]; then
         echo "⚠️ Failed to create Kibana Data View (HTTP $RESPONSE)"
         exit 1
