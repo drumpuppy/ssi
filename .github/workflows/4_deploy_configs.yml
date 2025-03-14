@@ -108,14 +108,10 @@ jobs:
             exit 1
           fi
 
-          # ✅ Trouver dynamiquement le StatefulSet Wazuh
-          WAZUH_STATEFULSET=$(kubectl get statefulsets -n wazuh -o jsonpath='{.items[0].metadata.name}')
-          if [[ -z "$WAZUH_STATEFULSET" ]]; then
-            echo "⚠️ No StatefulSet found for Wazuh. Aborting."
-            exit 1
-          fi
+          # ✅ Trouver dynamiquement le StatefulSet Wazuh Manager (Master + Worker)
+          WAZUH_STATEFULSETS=("wazuh-manager-master" "wazuh-manager-worker")
 
-          # ✅ Trouver le pod Wazuh Manager
+          # ✅ Trouver le pod principal du Wazuh Manager (Master)
           WAZUH_POD=$(kubectl get pods -n wazuh -l app=wazuh-manager -o jsonpath='{.items[0].metadata.name}' --ignore-not-found)
           if [[ -z "$WAZUH_POD" ]]; then
             echo "⚠️ Wazuh Manager pod not found. Aborting."
@@ -137,7 +133,10 @@ jobs:
             kubectl cp "./$FILE" "$WAZUH_POD:/var/ossec/etc/$FILE_NAME" -n wazuh
           done
 
-          echo "Restarting Wazuh Manager to apply changes..."
-          kubectl rollout restart statefulset "$WAZUH_STATEFULSET" -n wazuh
+          echo "Restarting Wazuh Manager components to apply changes..."
+          for STS in "${WAZUH_STATEFULSETS[@]}"; do
+            echo "🔄 Restarting $STS ..."
+            kubectl rollout restart statefulset "$STS" -n wazuh
+          done
 
           echo "✅ Wazuh configuration successfully updated!"
