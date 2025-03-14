@@ -198,25 +198,6 @@ jobs:
           helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
           helm upgrade --install istio-ingress istio/gateway -n istio-system
 
-      - name: Apply Doctobobo Gateway and VirtualService
-        run: |
-          # Appliquer le Gateway et le VirtualService
-          kubectl apply -f ./helm/istio/doctobobo-gateway.yaml -n istio-system
-          kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml -n istio-system
-      
-          # Appliquer le ClusterIssuer
-          kubectl apply -f ./helm/istio/clusterIssuer.yaml
-      
-          # Supprimer et réappliquer le certificat pour Doctobobo
-          kubectl delete certificate doctobobo-cert -n istio-system || true  # Ignore si le certificat n'existe pas
-          kubectl apply -f ./helm/istio/doctobobo-cert.yaml -n istio-system
-      
-          # Appliquer le fichier Ingress pour le challenge ACME
-          kubectl apply -f ./helm/istio/doctobobo-acme-ingress.yaml
-      
-          echo "Istio et les certificats sont en place !"
-
-
       - name: Deploy Wazuh
         run: |
           kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
