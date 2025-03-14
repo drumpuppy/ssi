@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Get Kibana Admin Password from Kubernetes Secret
-KIBANA_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 --decode)
+KIBANA_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath="{.data.password}" | base64 -d)
+echo "Using Kibana Password: $KIBANA_PASSWORD"
 
 # Kibana API Credentials
-KIBANA_URL="http://$(kubectl get svc kibana-kibana -n default -o jsonpath='{.spec.clusterIP}'):5601"
+KIBANA_URL="http://kibana-kibana.default.svc.cluster.local:5601"
 KIBANA_USER="elastic"
 
 create_data_view() {
@@ -12,7 +13,7 @@ create_data_view() {
   local index_pattern=$2
   local search_filter=$3
 
-  curl -X POST "$KIBANA_URL/api/data_views/data_view" \
+  RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$KIBANA_URL/api/data_views/data_view" \
     -u "$KIBANA_USER:$KIBANA_PASSWORD" \
     -H "kbn-xsrf: true" \
     -H "Content-Type: application/json" \
@@ -37,6 +38,10 @@ create_data_view() {
         }
       }
     }"
+    if [[ "$RESPONSE" != "200" && "$RESPONSE" != "201" ]]; then
+        echo "⚠️ Failed to create Kibana Data View (HTTP $RESPONSE)"
+        exit 1
+    fi
 }
 
 # Create Data Views

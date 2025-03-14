@@ -56,8 +56,10 @@ jobs:
           fi
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
+          export KUBECONFIG=~/.kube/config  # Ensure it's set in GitHub runner
 
       - name: Fetch Kibana Password & Deploy Data Views
         run: |
+          export KUBECONFIG=~/.kube/config
           chmod +x ./config/create-kibana-dataviews.sh
           ./config/create-kibana-dataviews.sh
