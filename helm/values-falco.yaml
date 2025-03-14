@@ -834,7 +834,7 @@ falco:
   # certain priority or higher are active and evaluated by Falco. Supported
   # levels: "emergency", "alert", "critical", "error", "warning", "notice",
   # "info", "debug"
-  priority: debug
+  priority: error
 
   # [Stable] `json_output`
   #
