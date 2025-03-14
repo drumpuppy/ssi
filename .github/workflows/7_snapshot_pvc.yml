@@ -1,4 +1,4 @@
-name: Snapshot PVC
+name: 7 Snapshot PVC
 
 on:
   workflow_dispatch:

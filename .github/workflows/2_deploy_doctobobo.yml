@@ -1,4 +1,4 @@
-name: Deploy Doctobobo
+name: 2 Deploy Doctobobo
 
 on:
   workflow_dispatch:

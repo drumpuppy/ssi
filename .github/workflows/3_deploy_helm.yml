@@ -1,4 +1,4 @@
-name: Deploy Helm Charts
+name: 3 Deploy Helm Charts
 
 on:
   workflow_dispatch:
