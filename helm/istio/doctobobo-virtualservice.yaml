@@ -1,17 +1,19 @@
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: doctobobo
   namespace: istio-system
 spec:
+  gateways:
+  - istio-system/doctobobo-gateway
   hosts:
-    - doctobobo2.my-soc.fr
+  - doctobobo2.my-soc.fr
   http:
-    - match:
-        - uri:
-            prefix: "/.well-known/acme-challenge/"
-      route:
-        - destination:
-            host: doctobobo
-            port:
-              number: 80
+  - match:
+    - uri:
+        prefix: /.well-known/acme-challenge/
+    route:
+    - destination:
+        host: cm-acme-http-solver
+        port:
+          number: 8089
