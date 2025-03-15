@@ -15,7 +15,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            selector:
-              acme.cert-manager.io/http-domain: 1353975674
+            name: cm-acme-http-solver
             port:
               number: 80
