@@ -16,6 +16,6 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: cm-acme-http-solver
+                name: cm-acme-http-solver-vncn7
                 port:
                   number: 8089
