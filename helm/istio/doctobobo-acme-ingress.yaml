@@ -11,10 +11,10 @@ spec:
   - host: doctobobo2.my-soc.fr
     http:
       paths:
-      - path: /.well-known/acme-challenge/
+      - path: /
         pathType: Prefix
         backend:
           service:
-            name: cm-acme-http-solver
+            name: cm-acme-http-solver-*
             port:
               number: 80
