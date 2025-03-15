@@ -14,6 +14,6 @@ spec:
         prefix: /.well-known/acme-challenge/
     route:
     - destination:
-        host: cm-acme-http-solver
+        host: cm-acme-http-solver.istio-system.svc.cluster.local
         port:
           number: 8089
