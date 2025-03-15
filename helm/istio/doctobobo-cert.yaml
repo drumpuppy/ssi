@@ -4,10 +4,10 @@ metadata:
   name: doctobobo-cert
   namespace: istio-system
 spec:
-  secretName: doctobobo-cert
+  secretName: doctobobo-tls
   issuerRef:
     name: letsencrypt-prod-istio
     kind: ClusterIssuer
   commonName: doctobobo2.my-soc.fr
   dnsNames:
-    - doctobobo2.my-soc.fr
+  - doctobobo2.my-soc.fr
