@@ -6,6 +6,7 @@ metadata:
   annotations:
     cert-manager.io/issuer-kind: ClusterIssuer
     cert-manager.io/issuer-name: letsencrypt-prod-istio
+    acme.cert-manager.io/http01-edit-in-place: "true"
 spec:
   secretName: doctobobo-tls
   issuerRef:
