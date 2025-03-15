@@ -215,22 +215,37 @@ jobs:
       # Étape 14 : Déploiement de ClusterIssuer
       - name: Deploy ClusterIssuer
         run: |
-          kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
+          kubectl apply -f ./Ingress/clusterIssuer.yaml -n cert-manager
 
+      # Appliquer le ClusterIssuer pour Istio
+      - name: Apply Istio ClusterIssuer
+        run: |
+          kubectl apply -f ./helm/istio/clusterIssuer.yaml -n istio-system
+          
       - name: Apply Doctobobo Gateway and VirtualService
         run: |
           # Appliquer le Gateway et le VirtualService
           kubectl apply -f ./helm/istio/doctobobo-gateway.yaml -n istio-system
           kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml -n istio-system
+          
+          echo "Gateway et VirtualService pour Doctobobo sont en place !"
+
+
+      # Appliquer le fichier Ingress pour le challenge ACME
+      - name: Apply Ingress for ACME challenge
+        run: |
+          kubectl apply -f ./helm/istio/doctobobo-acme-ingress.yaml -n istio-system
+          
+          echo "Ingress pour ACME challenge appliqué !"
+    
       
-          # Appliquer le ClusterIssuer
-          kubectl apply -f ./helm/istio/clusterIssuer.yaml
-      
+      # Appliquer le certificat pour Doctobobo
+      - name: Apply Doctobobo Certificate
+        run: |
           # Supprimer et réappliquer le certificat pour Doctobobo
           kubectl delete certificate doctobobo-cert -n istio-system || true  # Ignore si le certificat n'existe pas
           kubectl apply -f ./helm/istio/doctobobo-cert.yaml -n istio-system
-      
-          # Appliquer le fichier Ingress pour le challenge ACME
-          kubectl apply -f ./helm/istio/doctobobo-acme-ingress.yaml
-      
+          
+          echo "Certificat pour Doctobobo appliqué !"
+          
           echo "Istio et les certificats sont en place !"
