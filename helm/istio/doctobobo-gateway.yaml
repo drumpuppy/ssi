@@ -7,9 +7,18 @@ spec:
   selector:
     istio: ingressgateway
   servers:
-    - port:
-        number: 80
-        name: http
-        protocol: HTTP
-      hosts:
-        - "doctobobo2.my-soc.fr"
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "doctobobo2.my-soc.fr"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: doctobobo-cert
+    hosts:
+    - "doctobobo2.my-soc.fr"
