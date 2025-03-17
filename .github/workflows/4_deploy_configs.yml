@@ -93,23 +93,28 @@ jobs:
           
           echo "✅ Kibana Data Views successfully imported!"
 
-      - name: Load Watcher into Elasticsearch
+      - name: Port-forward Elasticsearch & Import Watcher
         run: |
           export KUBECONFIG=~/.kube/config
 
           ES_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
 
-          # Kubernetes service DNS (default for Elasticsearch chart or Helm install)
-          ES_HOST="elasticsearch-master.default.svc.cluster.local"
+          # Run port-forward in background
+          kubectl port-forward svc/elasticsearch-master 9200:9200 -n default &
+          PF_PID=$!
+          sleep 5  # Give it a moment to establish
 
-          echo "Importing watcher directly via service DNS"
+          echo "Importing watcher via localhost:9200"
 
-          curl -X PUT "http://${ES_HOST}:9200/_watcher/watch/falco" \
+          curl -X PUT "http://localhost:9200/_watcher/watch/falco" \
             -H "Content-Type: application/json" \
             -u "elastic:$ES_PASSWORD" \
             --data-binary "@./config/falco-watcher.json"
 
-          echo "✅ Watcher successfully loaded into Elasticsearch (outside pod)"
+          kill $PF_PID
+
+          echo "✅ Watcher successfully loaded into Elasticsearch"
+
 
 
 
