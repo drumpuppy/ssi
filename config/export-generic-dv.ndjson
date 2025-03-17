@@ -1,0 +1,2 @@
+{"attributes":{"fieldAttrs":"{}","fieldFormatMap":"{}","fields":"[]","name":"generic","runtimeFieldMap":"{}","sourceFilters":"[]","timeFieldName":"@timestamp","title":"logs-generic*","typeMeta":"{}"},"coreMigrationVersion":"8.5.1","id":"78847f82-b007-4e32-9aa2-06a7bdaa0d7a","migrationVersion":{"index-pattern":"8.0.0"},"references":[],"type":"index-pattern","updated_at":"2025-03-17T15:02:29.017Z","version":"WzU5MiwxXQ=="}
+{"excludedObjects":[],"excludedObjectsCount":0,"exportedCount":4,"missingRefCount":0,"missingReferences":[]}
