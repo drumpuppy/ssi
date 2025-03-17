@@ -106,8 +106,8 @@ jobs:
           kubectl cp ./config/falco-watcher.json "$ES_POD:/usr/share/elasticsearch/config/falco-watcher.json" -n default
 
           echo "Importing watcher into Elasticsearch"
-          kubectl exec -it "$ES_POD" -n default -- \
-            curl -X PUT "http://localhost:9200/_watcher/watch/falco" \
+          kubectl exec "$ES_POD" -n default -- \
+            curl -X PUT "http://0.0.0.0:9200/_watcher/watch/falco" \
             -H "Content-Type: application/json" \
             -u "elastic:$ES_PASSWORD" \
             --data-binary "@/usr/share/elasticsearch/config/falco-watcher.json"
