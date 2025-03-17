@@ -73,11 +73,9 @@ jobs:
           # Define files to upload from the ./config folder
           FILES=(
             config/export-istio-dv.ndjson
-            config/export-istio-search.ndjson
             config/export-falco-dv.ndjson
-            config/export-falco-search.ndjson
             config/export-wazuh-dv.ndjson
-            config/export-wazuh-search.ndjson
+            config/export-generic-dv.ndjson
           )
           
           for FILE in "${FILES[@]}"; do
@@ -94,6 +92,28 @@ jobs:
           done
           
           echo "✅ Kibana Data Views successfully imported!"
+
+      - name: Load Watcher into Elasticsearch
+        run: |
+          export KUBECONFIG=~/.kube/config
+
+          ES_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
+
+          ES_POD=$(kubectl get pods -n default -l app=elasticsearch -o jsonpath='{.items[0].metadata.name}')
+
+          echo "Uploading watcher config to Elasticsearch"
+
+          kubectl cp ./config/falco-watcher.json "$ES_POD:/usr/share/elasticsearch/config/falco-watcher.json" -n default
+
+          echo "Importing watcher into Elasticsearch"
+          kubectl exec -it "$ES_POD" -n default -- \
+            curl -X PUT "http://localhost:9200/_watcher/watch/falco" \
+            -H "Content-Type: application/json" \
+            -u "elastic:$ES_PASSWORD" \
+            --data-binary "@/usr/share/elasticsearch/config/falco-watcher.json"
+
+          echo "✅ Watcher successfully loaded into Elasticsearch"
+
 
       - name: Fetch Wazuh Password & Deploy Configs
         run: |
