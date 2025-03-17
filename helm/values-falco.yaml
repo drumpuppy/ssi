@@ -505,7 +505,7 @@ falcoctl:
     # correct folder by falcoctl. To prevent new versions of artifacts from breaking Falco, the tool checks if it is compatible
     # with the running version of Falco before installing it.
     follow:
-      enabled: true
+      enabled: false
       # -- Extra environment variables that will be pass onto falcoctl-artifact-follow sidecar container.
       env: []
       # -- Arguments to pass to the falcoctl-artifact-follow sidecar container.
