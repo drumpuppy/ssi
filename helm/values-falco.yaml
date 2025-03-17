@@ -487,7 +487,7 @@ falcoctl:
     # -- Runs "falcoctl artifact install" command as an init container. It is used to install artfacts before
     # Falco starts. It provides them to Falco by using an emptyDir volume.
     install:
-      enabled: true
+      enabled: false
       # -- Extra environment variables that will be pass onto falcoctl-artifact-install init container.
       env: []
       # -- Arguments to pass to the falcoctl-artifact-install init container.
