@@ -1,76 +1,72 @@
 {
-    "trigger": {
-      "schedule": {
-        "interval": "1m"
-      }
-    },
-    "input": {
-      "search": {
-        "request": {
-          "search_type": "query_then_fetch",
-          "indices": [
-            "logs-falco-default"
-          ],
-          "rest_total_hits_as_int": true,
-          "body": {
-            "query": {
-              "bool": {
-                "must": [
-                  {
-                    "wildcard": {
-                      "output": {
-                        "value": "*Critical Executing binary not part of base image*"
-                      }
-                    }
-                  },
-                  {
-                    "range": {
-                      "@timestamp": {
-                        "gte": "now-1m/m"
-                      }
+  "trigger": {
+    "schedule": {
+      "interval": "1m"
+    }
+  },
+  "input": {
+    "search": {
+      "request": {
+        "search_type": "query_then_fetch",
+        "indices": [
+          "logs-falco-default"
+        ],
+        "rest_total_hits_as_int": true,
+        "body": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "wildcard": {
+                    "output": {
+                      "value": "*Critical Executing binary not part of base image*"
                     }
                   }
-                ]
-              }
-            },
-            "size": 1,
-            "_source": true
-          }
-        }
-      }
-    },
-    "condition": {
-      "script": {
-        "source": "return ctx.payload.hits.hits.size() > 0",
-        "lang": "painless"
-      }
-    },
-    "actions": {
-      "trigger_github": {
-        "webhook": {
-          "scheme": "https",
-          "host": "api.github.com",
-          "port": 443,
-          "method": "post",
-          "path": "/repos/drumpuppy/ssi/actions/workflows/main.yml/dispatches",
-          "params": {},
-          "headers": {
-            "Authorization": "Bearer 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",
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json"
+                },
+                {
+                  "range": {
+                    "@timestamp": {
+                      "gte": "now-1m/m"
+                    }
+                  }
+                }
+              ]
+            }
           },
-          "body": """{ "ref": "main", "inputs": { "pod": "{{ctx.payload.pod}}", "namespace": "{{ctx.payload.namespace}}" } }"""
+          "size": 1,
+          "_source": true
         }
-      }
-    },
-    "transform": {
-      "script": {
-        "source": """
-          def pod = ctx.payload.hits.hits[0]._source.output_fields['k8s.pod.name'];
-          def namespace = ctx.payload.hits.hits[0]._source.output_fields['k8s.ns.name'];
-          return ['pod': pod, 'namespace': namespace];
-        """,
-        "lang": "painless"
       }
     }
+  },
+  "condition": {
+    "script": {
+      "source": "return ctx.payload.hits.hits.size() > 0",
+      "lang": "painless"
+    }
+  },
+  "actions": {
+    "trigger_github": {
+      "webhook": {
+        "scheme": "https",
+        "host": "api.github.com",
+        "port": 443,
+        "method": "post",
+        "path": "/repos/drumpuppy/ssi/actions/workflows/main.yml/dispatches",
+        "params": {},
+        "headers": {
+          "Authorization": "Bearer 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",
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        "body": "{ \"ref\": \"main\", \"inputs\": { \"pod\": \"{{ctx.payload.pod}}\", \"namespace\": \"{{ctx.payload.namespace}}\" } }"
+      }
+    }
+  },
+  "transform": {
+    "script": {
+      "source": "def pod = ctx.payload.hits.hits[0]._source.output_fields['k8s.pod.name']; def namespace = ctx.payload.hits.hits[0]._source.output_fields['k8s.ns.name']; return ['pod': pod, 'namespace': namespace];",
+      "lang": "painless"
+    }
   }
+}
