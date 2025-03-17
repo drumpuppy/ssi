@@ -99,24 +99,26 @@ jobs:
 
           ES_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
 
-          # Run port-forward in background
+          # Port-forward in background
           kubectl port-forward svc/elasticsearch-master 9200:9200 -n default &
           PF_PID=$!
-          sleep 5  # Give it a moment to establish
+          echo "Waiting for port-forward to be ready..."
+          sleep 10
+
+          echo "Starting Elasticsearch Watcher..."
+          until curl -s -o /dev/null -w "%{http_code}" -u "elastic:$ES_PASSWORD" http://localhost:9200/_watcher/_start | grep -q "200"; do
+            echo "Retrying watcher start..."
+            sleep 5
+          done
 
           echo "Importing watcher via localhost:9200"
-
           curl -X PUT "http://localhost:9200/_watcher/watch/falco" \
             -H "Content-Type: application/json" \
             -u "elastic:$ES_PASSWORD" \
             --data-binary "@./config/falco-watcher.json"
 
-          kill $PF_PID
-
+          kill $PF_PID || true
           echo "✅ Watcher successfully loaded into Elasticsearch"
-
-
-
 
       - name: Fetch Wazuh Password & Deploy Configs
         run: |
