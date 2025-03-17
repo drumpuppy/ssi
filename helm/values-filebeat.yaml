@@ -63,25 +63,26 @@ daemonset:
             when.contains:
               kubernetes.container.name: "falco"
             fields:
-              source: "falco"
+              source_type: "falco"
 
         - add_fields:
             when.contains:
               kubernetes.container.name: "wazuh"
             fields:
-              source: "wazuh"
+              source_type: "wazuh"
 
         - add_fields:
             when.contains:
               kubernetes.container.name: "istio"
             fields:
-              source: "istio"
+              source_type: "istio"
 
         - add_fields:
             when.not.contains:
-              source: ""
+              source_type: ""
             fields:
-              source: "generic"
+              source_type: "generic"
+
 
       setup.template.enabled: true
       setup.template.name: "filebeat"
@@ -99,19 +100,19 @@ daemonset:
         indices:
           - index: "filebeat-falco-%{+yyyy.MM.dd}"
             when.contains:
-              fields.source: "falco"
+              fields.source_type: "falco"
 
           - index: "filebeat-wazuh-%{+yyyy.MM.dd}"
             when.contains:
-              fields.source: "wazuh"
+              fields.source_type: "wazuh"
 
           - index: "filebeat-istio-%{+yyyy.MM.dd}"
             when.contains:
-              fields.source: "istio"
+              fields.source_type: "istio"
 
           - index: "filebeat-generic-%{+yyyy.MM.dd}"
             when.not.contains:
-              fields.source: ""
+              fields.source_type: ""
 
 
 
