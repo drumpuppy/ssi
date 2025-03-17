@@ -93,30 +93,32 @@ jobs:
           
           echo "✅ Kibana Data Views successfully imported!"
 
-      - name: Load Watcher via Kibana Pod
+      - name: Port-forward Elasticsearch & Import Watcher
         run: |
           export KUBECONFIG=~/.kube/config
 
-          # Get Kibana password (same as ES in your case)
-          KIBANA_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
+          ES_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
 
-          # Get Kibana pod name
-          KIBANA_POD=$(kubectl get pods -n default -l app=kibana -o jsonpath='{.items[0].metadata.name}')
+          # Port-forward in background
+          kubectl port-forward svc/elasticsearch-master 9200:9200 -n default &
+          PF_PID=$!
+          echo "Waiting for port-forward to be ready..."
+          sleep 10
 
-          echo "Uploading watcher JSON to Kibana pod: $KIBANA_POD"
+          echo "Starting Elasticsearch Watcher..."
+          until curl -s -o /dev/null -w "%{http_code}" -u "elastic:$ES_PASSWORD" http://localhost:9200/_watcher/_start | grep -q "200"; do
+            echo "Retrying watcher start..."
+            sleep 5
+          done
 
-          # Copy the watcher file to Kibana pod
-          kubectl cp ./config/falco-watcher.json "$KIBANA_POD:/usr/share/kibana/config/falco-watcher.json" -n default
-
-          echo "Importing watcher via Kibana pod internal network..."
-          kubectl exec -it "$KIBANA_POD" -n default -- \
-            curl -X PUT "http://elasticsearch-master.default.svc.cluster.local:9200/_watcher/watch/falco" \
+          echo "Importing watcher via localhost:9200"
+          curl -X PUT "http://localhost:9200/_watcher/watch/falco" \
             -H "Content-Type: application/json" \
-            -u "elastic:$KIBANA_PASSWORD" \
-            --data-binary "@/usr/share/kibana/config/falco-watcher.json"
+            -u "elastic:$ES_PASSWORD" \
+            --data-binary "@./config/falco-watcher.json"
 
-          echo "✅ Watcher successfully loaded via Kibana pod!"
-
+          kill $PF_PID || true
+          echo "✅ Watcher successfully loaded into Elasticsearch"
 
       - name: Fetch Wazuh Password & Deploy Configs
         run: |
