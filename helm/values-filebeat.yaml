@@ -40,48 +40,34 @@ daemonset:
           paths:
             - /var/log/containers/*.log
           multiline:
-            pattern: '^\s+(at|caused by)'  # Match Java stack traces
+            pattern: '^\s+(at|caused by)'
             negate: false
             match: after
-
           processors:
-            - add_kubernetes_metadata:
-                host: ${NODE_NAME}
-                matchers:
-                  - logs_path:
-                      logs_path: "/var/log/containers/"
+            - decode_json_fields:
+                fields: ["message"]
+                process_array: false
+                max_depth: 5
+                target: ""
+                overwrite_keys: true
 
-      processors:
-        - decode_json_fields:
-            fields: ["message"]
-            process_array: false
-            max_depth: 5
-            target: ""
-            overwrite_keys: true
+            - add_fields:
+                when.contains:
+                  kubernetes.container.name: "falco"
+                fields:
+                  source_type: "falco"
 
-        - add_fields:
-            when.contains:
-              kubernetes.container.name: "falco"
-            fields:
-              source_type: "falco"
+            - add_fields:
+                when.contains:
+                  kubernetes.container.name: "wazuh"
+                fields:
+                  source_type: "wazuh"
 
-        - add_fields:
-            when.contains:
-              kubernetes.container.name: "wazuh"
-            fields:
-              source_type: "wazuh"
-
-        - add_fields:
-            when.contains:
-              kubernetes.container.name: "istio"
-            fields:
-              source_type: "istio"
-
-        - add_fields:
-            when.not.contains:
-              source_type: ""
-            fields:
-              source_type: "generic"
+            - add_fields:
+                when.contains:
+                  kubernetes.container.name: "istio"
+                fields:
+                  source_type: "istio"
 
 
       setup.template.enabled: true
@@ -100,19 +86,20 @@ daemonset:
         indices:
           - index: "filebeat-falco-%{+yyyy.MM.dd}"
             when.contains:
-              fields.source_type: "falco"
+              fields.source_type: ["falco"]
 
           - index: "filebeat-wazuh-%{+yyyy.MM.dd}"
             when.contains:
-              fields.source_type: "wazuh"
+              fields.source_type: ["wazuh"]
 
           - index: "filebeat-istio-%{+yyyy.MM.dd}"
             when.contains:
-              fields.source_type: "istio"
+              fields.source_type: ["istio"]
 
           - index: "filebeat-generic-%{+yyyy.MM.dd}"
             when.not.contains:
-              fields.source_type: ""
+              fields.source_type: ["falco", "wazuh", "istio"]
+
 
 
 
