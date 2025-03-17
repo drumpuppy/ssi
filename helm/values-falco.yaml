@@ -672,8 +672,6 @@ falco:
   # Only enable two rules:
   #
   rules:
-    - disable:
-        rule: "*"
     - enable:
         rule: "*"
   #   - enable:
