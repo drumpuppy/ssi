@@ -68,3 +68,17 @@ jobs:
           echo "Restarting pod: ${{ github.event.inputs.pod }} in namespace: ${{ github.event.inputs.namespace }}"
           kubectl delete pod "${{ github.event.inputs.pod }}" -n "${{ github.event.inputs.namespace }}"
           echo "Pod ${{ github.event.inputs.pod }} has been deleted. Kubernetes will recreate it automatically."
+
+      - name: Notify Slack on Completion
+        if: always()
+        env:
+          SLACK_WEBHOOK: https://hooks.slack.com/services/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
+        run: |
+          STATUS="SUCCESS"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="FAILED"
+          fi
+
+          curl -X POST -H 'Content-type: application/json' --data "{
+            \"text\": \"🔔 *Pod Restart Job Completed*\n• Pod: \`${{ github.event.inputs.pod }}\`\n• Namespace: \`${{ github.event.inputs.namespace }}\`\n• Status: *$STATUS* \"
+          }" $SLACK_WEBHOOK
