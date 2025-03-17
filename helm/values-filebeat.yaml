@@ -35,14 +35,64 @@ daemonset:
   # such as filebeat.yml for daemonset
   filebeatConfig:
     filebeat.yml: |
-      filebeat.inputs:
-        - type: container
-          paths:
-            - /var/log/containers/*.log
-          multiline:
-            pattern: '^\s+(at|caused by)'
-            negate: false
-            match: after
+      filebeat.autodiscover:
+        providers:
+          - type: kubernetes
+            node: ${NODE_NAME}
+            templates:
+              - condition.regexp:
+                  kubernetes.container.name: "^(istio.*|istio-proxy|istio-ingress).*"
+                config:
+                  - type: container
+                    paths:
+                      - /var/log/containers/*${data.kubernetes.container.id}.log
+                    fields_under_root: true
+                    fields:
+                      log_type: istio
+                      data_stream.type: logs
+                      data_stream.dataset: istio
+                      data_stream.namespace: default
+
+              - condition.regexp:
+                  kubernetes.container.name: ".*wazuh.*"
+                config:
+                  - type: container
+                    paths:
+                      - /var/log/containers/*${data.kubernetes.container.id}.log
+                    fields_under_root: true
+                    fields:
+                      log_type: wazuh
+                      data_stream.type: logs
+                      data_stream.dataset: wazuh
+                      data_stream.namespace: default
+
+              - condition.regexp:
+                  kubernetes.container.name: ".*falco.*"
+                config:
+                  - type: container
+                    paths:
+                      - /var/log/containers/*${data.kubernetes.container.id}.log
+                    fields_under_root: true
+                    fields:
+                      log_type: falco
+                      data_stream.type: logs
+                      data_stream.dataset: falco
+                      data_stream.namespace: default
+                    json.keys_under_root: true
+                    json.add_error_key: true
+                    json.message_key: output
+
+              - # Generic fallback
+                config:
+                  - type: container
+                    paths:
+                      - /var/log/containers/*${data.kubernetes.container.id}.log
+                    fields_under_root: true
+                    fields:
+                      log_type: generic
+                      data_stream.type: logs
+                      data_stream.dataset: generic
+                      data_stream.namespace: default
 
       processors:
         - add_kubernetes_metadata:
@@ -51,29 +101,8 @@ daemonset:
               - logs_path:
                   logs_path: "/var/log/containers/"
 
-        - add_fields:
-            when.regexp:
-              kubernetes.container.name: "istio.*"
-            fields:
-              source_type: "istio"
-
-        - add_fields:
-            when.regexp:
-              kubernetes.container.name: "wazuh.*"
-            fields:
-              source_type: "wazuh"
-
-        - add_fields:
-            when.contains:
-              kubernetes.container.name: "falco"
-            fields:
-              source_type: "falco"
-
-
-      setup.template.enabled: true
-      setup.template.name: "filebeat"
-      setup.template.pattern: "filebeat-*"
       setup.ilm.enabled: false
+      setup.template.enabled: false
 
       output.elasticsearch:
         hosts: ["https://elasticsearch-master:9200"]
@@ -81,23 +110,17 @@ daemonset:
         password: "${ELASTICSEARCH_PASSWORD}"
         protocol: "https"
         ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
+        index: "%{[data_stream.type]}-%{[data_stream.dataset]}-%{[data_stream.namespace]}"
 
-        indices:
-          - index: "filebeat-falco-%{+yyyy.MM.dd}"
-            when.contains:
-              fields.source_type: ["falco"]
+      # # Optional logging
+      # logging.level: info
+      # logging.to_files: true
+      # logging.files:
+      #   path: /var/log/filebeat
+      #   name: filebeat.log
+      #   keepfiles: 7
+      #   permissions: 0644
 
-          - index: "filebeat-wazuh-%{+yyyy.MM.dd}"
-            when.contains:
-              fields.source_type: ["wazuh"]
-
-          - index: "filebeat-istio-%{+yyyy.MM.dd}"
-            when.contains:
-              fields.source_type: ["istio"]
-
-          - index: "filebeat-generic-%{+yyyy.MM.dd}"
-            when.not.contains:
-              fields.source_type: ["falco", "wazuh", "istio"]
 
   # Only used when updateStrategy is set to "RollingUpdate"
   maxUnavailable: 1
