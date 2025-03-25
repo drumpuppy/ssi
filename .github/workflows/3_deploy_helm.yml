@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Helm
         run: |
@@ -57,54 +57,20 @@ jobs:
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
 
+      - name: Add all Helm Repos
+        run: |
+          helm repo add elastic https://helm.elastic.co
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add falcosecurity https://falcosecurity.github.io/charts
+          helm repo add istio https://istio-release.storage.googleapis.com/charts
+          helm repo update
+
       - name: Uninstall All Helm Charts
         continue-on-error: true
         run: |
-          echo "Uninstalling Helm charts..."
-
-          if helm list -n default | grep -q 'prometheus-operator'; then
-            helm uninstall prometheus-operator --namespace default
-          else
-            echo "Prometheus Operator not installed in the default namespace."
-          fi
-
-          if helm list -n default | grep -q 'logstash'; then
-            helm uninstall logstash --namespace default
-          else
-            echo "Logstash not installed in the default namespace."
-          fi
-
-          if helm list -n default | grep -q 'falco'; then
-            helm uninstall falco --namespace default
-          else
-            echo "Falco not installed in the default namespace."
-          fi
-
-          if helm list -n default | grep -q 'filebeat'; then
-            helm uninstall filebeat --namespace default
-          else
-            echo "Filebeat not installed in the default namespace."
-          fi
-
-          if helm list -n default | grep -q 'elasticsearch'; then
-            helm uninstall elasticsearch --namespace default
-          else
-            echo "Elasticsearch not installed in the default namespace."
-          fi
-
-          if helm list -n istio-system | grep -q 'istiod'; then
-            helm uninstall istiod --namespace istio-system
-          else
-            echo "Istiod not installed in the istio-system namespace."
-          fi
-
-          if helm list -n default | grep -q 'kibana'; then
-            echo "Uninstalling Kibana in the background..."
-            helm uninstall kibana --namespace default --wait=false &
-          else
-            echo "Kibana not installed in the default namespace."
-          fi
-          
+          for ns in default istio-system; do
+            helm list -n $ns -q | xargs -r -n 1 helm uninstall -n $ns || true
+          done
           kubectl delete -k ./helm/wazuh-kubernetes/wazuh/
 
       - name: List and Delete All PVCs
@@ -135,8 +101,6 @@ jobs:
 
       - name: Deploy Elasticsearch
         run: |
-          helm repo add elastic https://helm.elastic.co
-          helm repo update
           helm install elasticsearch elastic/elasticsearch \
             --create-namespace \
             --namespace default \
@@ -144,20 +108,15 @@ jobs:
 
       - name: Wait for Elasticsearch to be ready
         run: |
-          echo "Waiting for Elasticsearch to be ready..."
-          for i in {1..30}; do
-            if kubectl get pods -n default -l app=elasticsearch-master -o jsonpath='{.items[0].status.containerStatuses[0].ready}' | grep -q 'true'; then
-              echo "Elasticsearch is running."
-              break
-            fi
-            echo "Elasticsearch is not ready. Retrying in 10 seconds..."
-            sleep 10
-          done
-          # If Elasticsearch is not ready after 5 minutes, exit with an error
-          if ! kubectl get pods -n default -l app=elasticsearch-master -o jsonpath='{.items[0].status.containerStatuses[0].ready}' | grep -q 'true'; then
-            echo "Error: Elasticsearch did not start successfully within the timeout period."
+          echo "🟡 Waiting for Elasticsearch to be ready (via Deployment rollout)..."
+          if ! kubectl rollout status deployment/elasticsearch-master -n default --timeout=120s; then
+            echo "🔴 Error: Elasticsearch did not become ready within 2 minutes."
+            kubectl get pods -n default
             exit 1
+          else
+            echo "✅ Elasticsearch is ready!"
           fi
+
 
       - name: Deploy Kibana
         run: |
@@ -179,20 +138,14 @@ jobs:
 
       - name: Deploy Prometheus Operator
         run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
           helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
 
       - name: Deploy Falco
         run: |
-          helm repo add falcosecurity https://falcosecurity.github.io/charts
-          helm repo update
           helm install falco falcosecurity/falco --namespace default -f ./helm/values-falco.yaml
 
       - name: Deploy Istio
         run: |
-          helm repo add istio https://istio-release.storage.googleapis.com/charts
-          helm repo update
           kubectl create namespace istio-system || true
           helm upgrade --install istio-base istio/base -n istio-system --create-namespace
           helm upgrade --install istiod istio/istiod -f ./helm/values-istio.yaml -n istio-system
