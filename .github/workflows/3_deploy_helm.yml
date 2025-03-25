@@ -109,7 +109,7 @@ jobs:
       - name: Wait for Elasticsearch to be ready
         run: |
           echo "🟡 Waiting for Elasticsearch to be ready (via Deployment rollout)..."
-          if ! kubectl rollout status deployment/elasticsearch-master -n default --timeout=120s; then
+          if ! kubectl rollout status deployment/elasticsearch-master -n default --timeout=240s; then
             echo "🔴 Error: Elasticsearch did not become ready within 2 minutes."
             kubectl get pods -n default
             exit 1
