@@ -90,17 +90,6 @@ jobs:
         run: |
           kubectl apply -f ./Ingress/network.yaml
  
-      # Étape 9.1 : Déploiement de Wazuh avec Kustomize
-      - name: Deploy Wazuh with Kustomize
-        run: |
-          kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
- 
-      # Étape 9.2 : Vérification du déploiement de Wazuh
-      - name: Check Wazuh Deployment
-        run: |
-          echo "Waiting for Wazuh pods to be ready..."
-          kubectl wait --for=condition=ready pod -l app=wazuh-dashboard -n wazuh --timeout=300s
-          kubectl get pods -n wazuh
  
       # Étape 10 : Récupérer l'IP du Load Balancer
       - name: Get Load Balancer IP
@@ -141,7 +130,6 @@ jobs:
           domain = "my-soc.fr"
           lb_ip = os.getenv('LB_IP')
           subdomains = ["kibana2", "doctobobo2", "wazuh2"]
-          # subdomains = ["prometheus2", "iris2", "kibana2", "doctobobo2"]
           # Récupérer et supprimer les enregistrements DNS existants
           for subdomain in subdomains:
               records = client.get(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain)
