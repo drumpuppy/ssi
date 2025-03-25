@@ -1,8 +1,8 @@
-name: 5 Deploy Network
-
+name: Deploy Network
+ 
 on:
   workflow_dispatch:
-
+ 
 jobs:
   deploy-network:
     runs-on: ubuntu-latest
@@ -10,20 +10,20 @@ jobs:
       # Étape 1 : Checkout du dépôt
       - name: Checkout repository
         uses: actions/checkout@v2
-
+ 
       # Étape 2 : Installer Helm (si nécessaire)
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
           chmod 700 get_helm.sh
           ./get_helm.sh
-
+ 
       # Étape 3 : Installer Scaleway CLI
       - name: Install Scaleway CLI
         run: |
           curl -s https://raw.githubusercontent.com/scaleway/scaleway-cli/master/scripts/get.sh | sh
           scw version
-
+ 
       # Étape 4 : Configurer Scaleway CLI
       - name: Configure Scaleway CLI
         env:
@@ -42,35 +42,16 @@ jobs:
           scw config set default-project-id="${SCW_DEFAULT_PROJECT_ID}"
           scw config set default-region="${SCW_DEFAULT_REGION}"
           scw config set default-zone="${SCW_DEFAULT_ZONE}"
-
+ 
           # Vérification de la configuration
           scw config get default-region
           scw config get default-zone
           scw config get access-key
-
+ 
           # Exporter explicitement la région et la zone pour être certain qu'elles sont prises en compte
           echo "SCW_DEFAULT_REGION=${SCW_DEFAULT_REGION}" >> $GITHUB_ENV
           echo "SCW_DEFAULT_ZONE=${SCW_DEFAULT_ZONE}" >> $GITHUB_ENV
-
-      - name: Create Flow Logs Bucket
-        run: |
-          BUCKET_NAME="flow-logs-$(date +%s)"
-          echo "Creating bucket: $BUCKET_NAME"
-          
-          # Vérifier si la région est bien définie
-          if [ -z "${SCW_DEFAULT_REGION}" ]; then
-            echo "Error: SCW_DEFAULT_REGION is not set or is empty"
-            exit 1
-          fi
-          
-          # Créer un bucket Object Storage avec la bonne région
-          scw object bucket create "$BUCKET_NAME" region="$SCW_DEFAULT_REGION" enable-versioning=false acl=private
-          
-          # Stocker le nom du bucket dans une variable d'environnement pour les étapes suivantes
-          echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
-
-
-
+  
       # Étape 5 : Configurer kubeconfig
       - name: Configure kubeconfig
         run: |
@@ -82,8 +63,8 @@ jobs:
           fi
           echo "Cluster ID: $cluster_id"
           scw k8s kubeconfig get "$cluster_id" > ~/.kube/config
-
-      # Étape 7 : Clean des Ressources
+ 
+      # Étape 6 : Clean des Ressources
       - name: Delete network resources
         continue-on-error: true
         run: |
@@ -92,160 +73,99 @@ jobs:
           kubectl delete -f ./Ingress/clusterIssuer.yaml -n default
           kubectl delete -f ./Ingress/network.yaml
           kubectl delete ns ingress-nginx --force --grace-period=0
-
-
-
-          
-
-      - name: Deploy NGINX Ingress Controller
+ 
+      # Étape 7 : Déploiement de NGINX Ingress Controller
+      - name: Deploy NGINX Ingress Controller with Helm
         run: |
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
           helm repo update
           helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
             --namespace ingress-nginx --create-namespace \
             -f ./helm/values-nginx.yaml
-
+ 
           kubectl wait --for=condition=available --timeout=120s deployment/ingress-nginx-controller -n ingress-nginx
-
-      - name: Deploy Ingress for NGINX Apps
+ 
+      # Étape 8 : Déploiement de l'Ingress
+      - name: Deploy Ingress
         run: |
           kubectl apply -f ./Ingress/network.yaml
-
-      - name: Deploy Istio Gateway for Doctobobo
-        run: kubectl apply -f helm/istio/doctobobo-gateway.yaml
-
-      - name: Deploy Istio VirtualService for Doctobobo
-        run: kubectl apply -f helm/istio/doctobobo-virtualservice.yaml
-
-
-
-      - name: Get Load Balancer IPs (NGINX & Istio)
-        id: get-lb-ips
+ 
+      # Étape 9.1 : Déploiement de Wazuh avec Kustomize
+      - name: Deploy Wazuh with Kustomize
         run: |
-          # Récupération de l'adresse IP du Load Balancer NGINX
-          nginx_lb_hostname=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-      
-          if [[ -z "$nginx_lb_hostname" || "$nginx_lb_hostname" == "null" ]]; then
-            echo "Error: NGINX Load Balancer Hostname not found."
+          kubectl apply -k ./helm/wazuh-kubernetes/wazuh/
+ 
+      # Étape 9.2 : Vérification du déploiement de Wazuh
+      - name: Check Wazuh Deployment
+        run: |
+          echo "Waiting for Wazuh pods to be ready..."
+          kubectl wait --for=condition=ready pod -l app=wazuh-dashboard -n wazuh --timeout=300s
+          kubectl get pods -n wazuh
+ 
+      # Étape 10 : Récupérer l'IP du Load Balancer
+      - name: Get Load Balancer IP
+        id: get-lb-ip
+        run: |
+          lb_ip=$(scw lb ip list --output json | jq -r '.[0].ip_address')
+          if [[ -z "$lb_ip" || "$lb_ip" == "null" ]]; then
+            echo "Error: Load Balancer IP not found."
             exit 1
           fi
-      
-          nginx_lb_ip=$(dig +short "$nginx_lb_hostname" | tail -n1)
-      
-          if [[ -z "$nginx_lb_ip" || "$nginx_lb_ip" == "null" ]]; then
-            echo "Error: NGINX Load Balancer IP not found."
-            exit 1
-          fi
-      
-          # Récupération de l'adresse IP du Load Balancer Istio
-          istio_lb_ip=$(kubectl get svc istio-ingress -n istio-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      
-          if [[ -z "$istio_lb_ip" || "$istio_lb_ip" == "null" ]]; then
-            echo "Error: Istio Load Balancer IP not found."
-            exit 1
-          fi
-
-          echo "NGINX LB Hostname: $nginx_lb_hostname"
-          echo "NGINX LB IP: $nginx_lb_ip"
-          echo "Istio LB IP: $istio_lb_ip"
-      
-          echo "nginx_lb_ip=$nginx_lb_ip" >> $GITHUB_ENV
-          echo "istio_lb_ip=$istio_lb_ip" >> $GITHUB_ENV
-
-
+          echo "Load Balancer IP: $lb_ip"
+          echo "lb_ip=$lb_ip" >> $GITHUB_ENV
+ 
+      # Étape 11 : Installer ovh
       - name: Install OVH Python SDK
-        run: pip install ovh
-
+        run: |
+          pip install ovh
+ 
+      # Étape 12 : Gérer les domaines dans OVH
       - name: Update OVH DNS Records
         env:
           OVH_APPLICATION_KEY: ${{ secrets.OVH_APP_KEY }}
           OVH_APPLICATION_SECRET: ${{ secrets.OVH_APP_SECRET }}
           OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
-          NGINX_LB_IP: ${{ env.nginx_lb_ip }}
-          ISTIO_LB_IP: ${{ env.istio_lb_ip }}
+          LB_IP: ${{ env.lb_ip }}
         run: |
           python <<EOF
           import ovh
           import os
-
+          # Configurer le client OVH
           client = ovh.Client(
               endpoint='ovh-eu',
               application_key=os.getenv('OVH_APPLICATION_KEY'),
               application_secret=os.getenv('OVH_APPLICATION_SECRET'),
               consumer_key=os.getenv('OVH_CONSUMER_KEY'),
           )
-
+          # Domaine et IP du Load Balancer
           domain = "my-soc.fr"
-          nginx_lb_ip = os.getenv('NGINX_LB_IP')
-          istio_lb_ip = os.getenv('ISTIO_LB_IP')
-
-          apps_on_nginx = ["kibana2", "wazuh2"]
-          app_on_istio = "doctobobo2"
-
-          # Supprimer les anciens enregistrements
-          for subdomain in apps_on_nginx + [app_on_istio]:
+          lb_ip = os.getenv('LB_IP')
+          subdomains = ["kibana2", "doctobobo2", "wazuh2"]
+          # subdomains = ["prometheus2", "iris2", "kibana2", "doctobobo2"]
+          # Récupérer et supprimer les enregistrements DNS existants
+          for subdomain in subdomains:
               records = client.get(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain)
               for record_id in records:
                   client.delete(f"/domain/zone/{domain}/record/{record_id}")
-                  print(f"Deleted record {record_id} for {subdomain}")
-
-          # Ajouter Doctobobo sur Istio
-          client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=app_on_istio, target=istio_lb_ip, ttl=0)
-          print(f"Created Doctobobo record pointing to {istio_lb_ip}")
-
-          # Ajouter les autres apps sur NGINX
-          for subdomain in apps_on_nginx:
-              client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=nginx_lb_ip, ttl=0)
-              print(f"Created {subdomain} record pointing to {nginx_lb_ip}")
-
+                  print(f"Deleted record {record_id} for subdomain {subdomain}")
+          # Ajouter de nouveaux enregistrements DNS
+          for subdomain in subdomains:
+              result = client.post(f"/domain/zone/{domain}/record", fieldType="A", subDomain=subdomain, target=lb_ip, ttl=0)
+              print(f"Created new record: {result}")
+          # Rafraîchir la zone DNS
           client.post(f"/domain/zone/{domain}/refresh")
           print("DNS zone refreshed.")
           EOF
-
-
-          
-
+          sleep 20
+ 
       # Étape 13 : Déploiement de cert-manager
       - name: Deploy cert-manager
         run: |
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
           kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=120s
           sleep 60
-
+ 
       # Étape 14 : Déploiement de ClusterIssuer
       - name: Deploy ClusterIssuer
         run: |
-          kubectl apply -f ./Ingress/clusterIssuer.yaml -n cert-manager
-
-      # Appliquer le ClusterIssuer pour Istio
-      - name: Apply Istio ClusterIssuer
-        run: |
-          kubectl apply -f ./helm/istio/clusterIssuer.yaml -n istio-system
-          
-      - name: Apply Doctobobo Gateway and VirtualService
-        run: |
-          # Appliquer le Gateway et le VirtualService
-          kubectl apply -f ./helm/istio/doctobobo-gateway.yaml -n istio-system
-          kubectl apply -f ./helm/istio/doctobobo-virtualservice.yaml -n istio-system
-          
-          echo "Gateway et VirtualService pour Doctobobo sont en place !"
-
-
-      # Appliquer le fichier Ingress pour le challenge ACME
-      - name: Apply Ingress for ACME challenge
-        run: |
-          kubectl apply -f ./helm/istio/doctobobo-acme-ingress.yaml -n istio-system
-          
-          echo "Ingress pour ACME challenge appliqué !"
-    
-      
-      # Appliquer le certificat pour Doctobobo
-      - name: Apply Doctobobo Certificate
-        run: |
-          # Supprimer et réappliquer le certificat pour Doctobobo
-          kubectl delete certificate doctobobo-cert -n istio-system || true  # Ignore si le certificat n'existe pas
-          kubectl apply -f ./helm/istio/doctobobo-cert.yaml -n istio-system
-          
-          echo "Certificat pour Doctobobo appliqué !"
-          
-          echo "Istio et les certificats sont en place !"
+          kubectl apply -f ./Ingress/clusterIssuer.yaml -n default
