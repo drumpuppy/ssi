@@ -103,14 +103,15 @@ jobs:
           kubectl cp "./config/export-generic-dv-index.ndjson" "$KIBANA_POD:/usr/share/kibana/config/export-generic-dv-index.ndjson" -n default
 
           echo "📡 Importing Data View into Kibana..."
-          kubectl exec -it "$KIBANA_POD" -n default -- \
+          kubectl exec "$KIBANA_POD" -n default -- \
             curl -X POST "http://localhost:5601/api/saved_objects/_import" \
             -H "kbn-xsrf: true" \
             -F "file=@/usr/share/kibana/config/export-generic-dv-index.ndjson" \
             -u "elastic:$KIBANA_PASSWORD"
 
           kubectl cp "./config/dataview_metricbeat.ndjson" "$KIBANA_POD:/usr/share/kibana/config/dataview_metricbeat.ndjson" -n default
-          kubectl exec -it "$KIBANA_POD" -n default -- \
+          echo "📡 Importing Data View into Kibana..."
+          kubectl exec "$KIBANA_POD" -n default -- \
             curl -X POST "http://localhost:5601/api/saved_objects/_import" \
             -H "kbn-xsrf: true" \
             -F "file=@/usr/share/kibana/config/dataview_metricbeat.ndjson" \
