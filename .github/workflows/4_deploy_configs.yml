@@ -107,9 +107,16 @@ jobs:
           curl -X PUT -u "elastic:$ES_PASSWORD" -k https://localhost:9200/_watcher/watch/falco \
             -H "Content-Type: application/json" \
             --data-binary "@./config/falco-watcher.json"
+
+          curl -u "elastic:$ES_PASSWORD" -k -X PUT https://localhost:9200/_ml/anomaly_detectors/k8s-pod-anomaly-job \
+            -H "Content-Type: application/json" \
+            --data-binary "@./config/ml-model.json"
+
+          curl -X PUT -u "elastic:$ES_PASSWORD" -k https://localhost:9200/_watcher/watch/ml \
+            -H "Content-Type: application/json" \
+            --data-binary "@./config/ml-watcher.json"
+
           kill $PF_PID || true
-
-
 
       - name: Fetch Wazuh Password & Deploy Configs
         run: |

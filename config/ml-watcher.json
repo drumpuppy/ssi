@@ -1,0 +1,38 @@
+{
+    "trigger": { "schedule": { "interval": "1m" } },
+    "input": {
+      "search": {
+        "request": {
+          "indices": [".ml-anomalies-*"],
+          "body": {
+            "query": {
+              "bool": {
+                "must": [
+                  { "term": { "job_id": "k8s-pod-anomaly-job" } },
+                  { "range": { "timestamp": { "gte": "now-2m/m" } } },
+                  { "range": { "record_score": { "gte": 50 } } }
+                ]
+              }
+            },
+            "size": 1
+          }
+        }
+      }
+    },
+    "condition": {
+      "compare": { "ctx.payload.hits.total": { "gt": 0 } }
+    },
+    "actions": {
+      "trigger_alert": {
+        "webhook": {
+          "method": "post",
+          "host": "hooks.slack.com",
+          "port": 443,
+          "scheme": "https",
+          "path": "services/XXX/XXX/XXX",
+          "body": "{ \"text\": \"⚠️ Anomaly detected on pod {{ctx.payload.hits.hits.0._source.partition_field_value}} (score: {{ctx.payload.hits.hits.0._source.record_score}})\" }"
+        }
+      }
+    }
+  }
+  
