@@ -116,6 +116,20 @@ jobs:
             -H "Content-Type: application/json" \
             --data-binary "@./config/ml-watcher.json"
 
+          curl -X PUT -u "elastic:$ES_PASSWORD" -k \
+            https://localhost:9200/_ml/anomaly_detectors/k8s-pod-anomaly-job \
+            --data-binary "@./config/ml-model.json"
+
+          curl -u "elastic:$ES_PASSWORD" -k -X POST https://localhost:9200/logs-generic-default/_doc \
+            -H "Content-Type: application/json" \
+            -d '{
+              "@timestamp": "2025-03-26T20:30:00Z",
+              "k8s.pod.cpu.usage": 900,
+              "k8s.pod.restart_count": 50,
+              "k8s.pod.name": "testpod",
+              "k8s.ns.name": "default"
+            }'
+
           kill $PF_PID || true
 
       - name: Fetch Wazuh Password & Deploy Configs
