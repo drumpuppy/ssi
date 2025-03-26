@@ -154,14 +154,15 @@ jobs:
 
           echo "🧪 Inserting anomaly to trigger alert"
           curl -u "elastic:$ES_PASSWORD" -k -X POST https://localhost:9200/logs-generic-default/_doc \
-            -H "Content-Type: application/json" \
-            -d '{
-              "@timestamp": "2025-03-26T20:30:00Z",
-              "k8s.pod.cpu.usage": 900,
-              "k8s.pod.restart_count": 50,
-              "k8s.pod.name": "testpod",
-              "k8s.ns.name": "default"
-            }'
+          -H "Content-Type: application/json" \
+          -d '{
+            "@timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ')'",
+            "system.cpu.total.norm.pct": 0.98,
+            "kubernetes.container.status.restarts": 12,
+            "kubernetes.pod.name": "testpod",
+            "kubernetes.namespace": "default"
+          }'
+
 
           kill $PF_PID || true
 
