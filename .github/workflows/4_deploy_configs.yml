@@ -93,6 +93,23 @@ jobs:
           
           echo "✅ Kibana Data Views successfully imported!"
 
+      - name: Import Generic Data View into Kibana
+        run: |
+          export KUBECONFIG=~/.kube/config
+          KIBANA_PASSWORD=$(kubectl get secret elasticsearch-master-credentials -n default -o jsonpath='{.data.password}' | base64 -d)
+          KIBANA_POD=$(kubectl get pods -n default -l app=kibana -o jsonpath='{.items[0].metadata.name}')
+          
+          echo "📦 Uploading generic data view to Kibana pod..."
+          kubectl cp "./config/export-generic-dv.ndjson" "$KIBANA_POD:/usr/share/kibana/config/export-generic-dv.ndjson" -n default
+
+          echo "📡 Importing Data View into Kibana..."
+          kubectl exec -it "$KIBANA_POD" -n default -- \
+            curl -X POST "http://localhost:5601/api/saved_objects/_import" \
+            -H "kbn-xsrf: true" \
+            -F "file=@/usr/share/kibana/config/export-generic-dv.ndjson" \
+            -u "elastic:$KIBANA_PASSWORD"
+
+
       - name: Port-forward Elasticsearch & Import Watcher
         run: |
           export KUBECONFIG=~/.kube/config
