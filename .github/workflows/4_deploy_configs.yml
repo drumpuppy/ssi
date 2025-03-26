@@ -152,6 +152,8 @@ jobs:
           curl -u "elastic:$ES_PASSWORD" -k \
             -X POST https://localhost:9200/_ml/anomaly_detectors/k8s-pod-anomaly-job/_open
 
+          curl -u "elastic:$ES_PASSWORD" -k -X POST "https://localhost:9200/_ml/datafeeds/datafeed-k8s-pod-anomaly/_start"
+
           echo "🧪 Inserting anomaly to trigger alert"
           curl -u "elastic:$ES_PASSWORD" -k -X POST https://localhost:9200/logs-generic-default/_doc \
             -H "Content-Type: application/json" \
