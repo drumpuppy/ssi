@@ -17,12 +17,31 @@
         "detector_description": "Detect unusual number of pod restarts"
       }
     ],
-    "influencers": ["kubernetes.pod.name", "kubernetes.namespace"]
+    "influencers": [
+      "kubernetes.pod.name",
+      "kubernetes.namespace"
+    ]
   },
   "data_description": {
     "time_field": "@timestamp"
   },
   "model_plot_config": {
     "enabled": true
+  },
+  "datafeed_config": {
+    "datafeed_id": "datafeed-k8s-pod-anomaly",
+    "job_id": "k8s-pod-anomaly-job",
+    "indices": [
+      "metricbeat-8.5.1",
+      "logs-generic-default"
+    ],
+    "query": {
+      "bool": {
+        "filter": [
+          { "range": { "@timestamp": { "gte": "now-15m" } } },
+          { "exists": { "field": "kubernetes.pod.name" } }
+        ]
+      }
+    }
   }
 }
