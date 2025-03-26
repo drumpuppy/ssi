@@ -1,0 +1,1 @@
+{"type":"index-pattern","attributes":{"title":"metricbeat-*","timeFieldName":"@timestamp"}}

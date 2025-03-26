@@ -1,28 +1,28 @@
 {
-    "job_id": "k8s-pod-anomaly-job",
-    "description": "Detect anomalous pod behavior (e.g., CPU spikes, pod restarts) in Kubernetes",
-    "analysis_config": {
-      "bucket_span": "1m",
-      "detectors": [
-        {
-          "function": "high_mean",
-          "field_name": "k8s.pod.cpu.usage", 
-          "partition_field_name": "k8s.pod.name",
-          "detector_description": "Detect high average CPU usage per pod"
-        },
-        {
-          "function": "count",
-          "by_field_name": "k8s.pod.restart_count",
-          "detector_description": "Detect unusual number of pod restarts"
-        }
-      ],
-      "influencers": ["k8s.pod.name", "k8s.ns.name"]
-    },
-    "data_description": {
-      "time_field": "@timestamp"
-    },
-    "model_plot_config": {
-      "enabled": true
-    }
+  "job_id": "k8s-pod-anomaly-job",
+  "description": "Detect anomalous pod behavior (e.g., CPU spikes, pod restarts) in Kubernetes",
+  "analysis_config": {
+    "bucket_span": "1m",
+    "detectors": [
+      {
+        "function": "high_mean",
+        "field_name": "system.cpu.total.norm.pct",
+        "partition_field_name": "kubernetes.pod.name",
+        "detector_description": "Detect high normalized CPU usage per pod"
+      },
+      {
+        "function": "high_mean",
+        "field_name": "kubernetes.container.status.restarts",
+        "partition_field_name": "kubernetes.pod.name",
+        "detector_description": "Detect unusual number of pod restarts"
+      }
+    ],
+    "influencers": ["kubernetes.pod.name", "kubernetes.namespace"]
+  },
+  "data_description": {
+    "time_field": "@timestamp"
+  },
+  "model_plot_config": {
+    "enabled": true
   }
-  
+}

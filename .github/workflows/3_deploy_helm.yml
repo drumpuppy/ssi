@@ -92,6 +92,12 @@ jobs:
             echo "Elasticsearch not installed in the default namespace."
           fi
 
+          if helm list -n default | grep -q 'metricbeat'; then
+            helm uninstall metricbeat --namespace default
+          else
+            echo "metricbeat not installed in the default namespace."
+          fi
+
           if helm list -n istio-system | grep -q 'istiod'; then
             helm uninstall istiod --namespace istio-system
           else
@@ -182,6 +188,13 @@ jobs:
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo update
           helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace default
+
+      - name: Deploy Metricbeat
+        run: |
+          helm install metricbeat elastic/metricbeat \
+            --namespace default \
+            --values ./helm/values-metricbeat.yaml
+
 
       - name: Deploy Falco
         run: |
