@@ -103,23 +103,30 @@ jobs:
             if nc -z localhost 9200; then break; fi
             sleep 3
           done
+
+          echo "▶️ Starting Elasticsearch Watcher..."
           curl -u "elastic:$ES_PASSWORD" -k -X POST https://localhost:9200/_watcher/_start
+
+          echo "📦 Uploading Falco Watcher"
           curl -X PUT -u "elastic:$ES_PASSWORD" -k https://localhost:9200/_watcher/watch/falco \
             -H "Content-Type: application/json" \
             --data-binary "@./config/falco-watcher.json"
 
+          echo "📦 Uploading ML Anomaly Detector (safe to fail if it already exists)"
           curl -u "elastic:$ES_PASSWORD" -k -X PUT https://localhost:9200/_ml/anomaly_detectors/k8s-pod-anomaly-job \
             -H "Content-Type: application/json" \
-            --data-binary "@./config/ml-model.json"
+            --data-binary "@./config/ml-model.json" || true
 
+          echo "📦 Uploading ML Watcher"
           curl -X PUT -u "elastic:$ES_PASSWORD" -k https://localhost:9200/_watcher/watch/ml \
             -H "Content-Type: application/json" \
             --data-binary "@./config/ml-watcher.json"
 
-          curl -X PUT -u "elastic:$ES_PASSWORD" -k \
-            https://localhost:9200/_ml/anomaly_detectors/k8s-pod-anomaly-job \
-            --data-binary "@./config/ml-model.json"
+          echo "🚀 Opening ML Job"
+          curl -u "elastic:$ES_PASSWORD" -k \
+            -X POST https://localhost:9200/_ml/anomaly_detectors/k8s-pod-anomaly-job/_open
 
+          echo "🧪 Inserting anomaly to trigger alert"
           curl -u "elastic:$ES_PASSWORD" -k -X POST https://localhost:9200/logs-generic-default/_doc \
             -H "Content-Type: application/json" \
             -d '{
@@ -131,6 +138,7 @@ jobs:
             }'
 
           kill $PF_PID || true
+
 
       - name: Fetch Wazuh Password & Deploy Configs
         run: |
