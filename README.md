@@ -1,5 +1,15 @@
 # ssi : sécurité du système d'information
 
+
+
+-------Dépendance--------
+terraform
+K8s scaleway
+dns ovh
+slack pour les alertes
+
+--> configurer les secret dans github actions pour utiliser les workflows
+
 ------ Terraform ------ 
 
 création des ressources suivantes:
